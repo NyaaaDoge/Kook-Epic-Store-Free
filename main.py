@@ -100,6 +100,7 @@ async def epic(msg: Message, command: str = None, *args):
                         # 开启订阅功能，同时推送限时领取商品
                         insert_flag = channelSQL.insert_channel_free_default(channel)
                         if insert_flag:
+                            logging.debug(f"Channel{channel} subscribe successfully")
                             await msg.reply("服务器新增推送频道成功！同时Epic商店限时免费商品推送功能 **[:green_square:开启]**。",
                                             type=MessageTypes.KMD)
                             now_time = datetime.now()
@@ -201,57 +202,58 @@ async def getFreeGames():
     except Exception as e:
         logging.error(e, exc_info=True)
 
-
-# --------------------------------------定时推送任务-----------------------------------------------
-
-# 推送数据库中未被推送过的商品信息
-@bot.task.add_interval(seconds=30)
-async def pushFreeGames():
-    logging.debug(f"Bot starting to push free items to channel(s)...")
-
     # 查询没有没被推送过的免费商品  ”0“代表没被推送过，”1“代表已被推送过
     items = epicFreeSQL.get_item_by_push_flag(0)
     if any(items):
-        try:
-            # 查询数据库中开启订阅功能的频道id-channel[4] “0”代表关闭，“1”代表开启
-            sub_channels = channelSQL.get_channel_by_push_flag_free(1)
-            # 给频道进行推送
-            for channel in sub_channels:
-                channel_id: str = channel[4]
-                try:
-                    # 获取频道
-                    target_channel = await bot.client.fetch_public_channel(channel_id=channel_id)
-                    for item in items:
-                        # 按时间进行推送，有截止日期
-                        if not item[13] == '':
-                            now_time = datetime.now()
-                            db_end_time = datetime.fromisoformat(item[13][:-1])
-                            # 如果还未结束领取，进行推送
-                            if db_end_time > now_time:
-                                # 进行推送
-                                await bot.client.send(target=target_channel, type=MessageTypes.CARD,
-                                                      content=freeGameCard(item))
-                                # 推送完毕
-                                logging.debug(
-                                    f"Free item{{game_id-{item[1]}:{item[2]}}} has been pushed to channel{{G_id-{target_channel.guild_id}, C_name-{target_channel.name}, C_id-{target_channel.id}}}")
-
-                except Exception as e:
-                    logging.error(f"G_id-{channel}: {e}")
-
-            # 推送完毕需要更改数据库中flag信息
-            for item in items:
-                flag_push = epicFreeSQL.update_item_push_flag_by_game_id(item[1], 1)
-                if flag_push:
-                    logging.info(
-                        f"Item({item[1]}:{item[2]}) has been pushed to all channels and the push-flag updated to 1.")
-                else:
-                    logging.info(f"Item({item[1]}) push flag update failed.")
-
-        except Exception as e:
-            logging.error(e, exc_info=True)
-
+        # 执行推送任务
+        logging.debug(f"Bot starting to push free items to channel(s)...")
+        await pushFreeGames(items)
     else:
         logging.debug(f"No free item to be pushed to the channel")
+
+
+# ----------------------------------------推送任务-----------------------------------------------
+
+
+# 推送数据库中未被推送过的商品信息
+async def pushFreeGames(items):
+    try:
+        # 查询数据库中开启订阅功能的频道id-channel[4] “0”代表关闭，“1”代表开启
+        sub_channels = channelSQL.get_channel_by_push_flag_free(1)
+        # 给频道进行推送
+        for channel in sub_channels:
+            channel_id: str = channel[4]
+            try:
+                # 获取频道
+                target_channel = await bot.client.fetch_public_channel(channel_id=channel_id)
+                for item in items:
+                    # 按时间进行推送，有截止日期
+                    if not item[13] == '':
+                        now_time = datetime.now()
+                        db_end_time = datetime.fromisoformat(item[13][:-1])
+                        # 如果还未结束领取，进行推送
+                        if db_end_time > now_time:
+                            # 进行推送 TODO 一个频道一个频道发送效率是否不够高
+                            await bot.client.send(target=target_channel, type=MessageTypes.CARD,
+                                                  content=freeGameCard(item))
+                            # 推送完毕
+                            logging.info(
+                                f"Free item{{game_id-{item[1]}:{item[2]}}} has been pushed to channel{{G_id-{target_channel.guild_id}, C_name-{target_channel.name}, C_id-{target_channel.id}}}")
+
+            except Exception as e:
+                logging.error(f"Channel{channel}: {e}")
+
+        # 推送完毕需要更改数据库中flag信息
+        for item in items:
+            flag_push = epicFreeSQL.update_item_push_flag_by_game_id(item[1], 1)
+            if flag_push:
+                logging.info(
+                    f"Item({item[1]}:{item[2]}) has been pushed to all channels and the push-flag updated to 1.")
+            else:
+                logging.info(f"Item({item[1]}) push flag update failed.")
+
+    except Exception as e:
+        logging.error(e, exc_info=True)
 
 
 # ========================================卡片部分================================================
@@ -261,8 +263,7 @@ def freeGameCard(item_free):
     card_message = CardMessage()
 
     now_time = datetime.now()
-    db_release_time = datetime.fromisoformat(item_free[5][:-1])
-    fmt_release_time = db_release_time.strftime("%Y-%m-%d")
+    fmt_release_time = datetime.fromisoformat(item_free[5][:-1]).strftime("%Y-%m-%d")
     db_start_time_bj = datetime.fromisoformat(item_free[12][:-1]) + timedelta(hours=8)
     db_end_time_bj = datetime.fromisoformat(item_free[13][:-1]) + timedelta(hours=8)
 
@@ -282,9 +283,10 @@ def freeGameCard(item_free):
         card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
     # 现在不能领取
     elif now_time < db_start_time_bj:
-        card.append(Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至 `{db_end_time_bj}`**", type=Types.Text.KMD),
-                                   accessory=Element.Button(f"即将推出", f"{item_free[4]}",
-                                                            theme=Types.Theme.INFO, click=Types.Click.LINK)))
+        card.append(
+            Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至 `{db_end_time_bj}`**", type=Types.Text.KMD),
+                           accessory=Element.Button(f"即将推出", f"{item_free[4]}",
+                                                    theme=Types.Theme.INFO, click=Types.Click.LINK)))
         card.append(Module.Context(Element.Text("离免费领取时间(ins)**开始**(ins)还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_start_time_bj, mode=Types.CountdownMode.DAY))
         card.append(Module.Context(Element.Text("离免费领取时间(ins)**结束**(ins)还有：", type=Types.Text.KMD)))
