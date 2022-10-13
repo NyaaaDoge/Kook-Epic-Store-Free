@@ -1,7 +1,6 @@
 import json
 import logging
 
-
 from datetime import datetime, timedelta
 
 import aiohttp
@@ -63,7 +62,7 @@ async def hello(msg: Message):
 
 
 # Epic指令
-@bot.command(name='epic', prefixes=["."])
+@bot.command(name='epic', prefixes=[".", "。"], case_sensitive=False)
 async def epic(msg: Message, command: str = None, *args):
     msgLogging(msg)
     current_channel_guild_id = msg.ctx.guild.id
@@ -133,13 +132,22 @@ async def epic(msg: Message, command: str = None, *args):
                 else:
                     await msg.reply("订阅Epic商店限时免费商品推送功能 **[:red_square:关闭]** 失败，请联系Bot管理员解决！", type=MessageTypes.KMD)
 
+        elif command is None:
+            await msg.reply("""用法帮助：
+`.epic free on`     在该频道开启Epic免费游戏推送。注意：一个服务器只能有一个频道能进行推送。
+`.epic free off`    关闭Epic免费游戏推送，注意：该指令在任何频道都生效。
+
+> 建议在服务器单独开设一个频道接收Epic免费游戏资讯，将该文字频道的频道的Epic Store Free角色的可见和发送消息权限设置为开启。
+如果觉得Epic Store Free好用的话，欢迎来 **[Bot Market页面](https://www.botmarket.cn/)** 发表评价。
+欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，内有Steam限时免费游戏推送。""", type=MessageTypes.KMD)
+
     except Exception as e:
         logging.error(e, exc_info=True)
         await msg.reply("发生了一些未知错误，请联系开发者解决。")
 
 
 # 开发者指令
-@bot.command(name='admin')
+@bot.command(name='admin', case_sensitive=False)
 async def admin(msg: Message, command: str = None, *args):
     msgLogging(msg)
     if msg.author.id in developersID:
@@ -197,7 +205,7 @@ async def getFreeGames():
 # --------------------------------------定时推送任务-----------------------------------------------
 
 # 推送数据库中未被推送过的商品信息
-@bot.task.add_interval(seconds=15)
+@bot.task.add_interval(seconds=30)
 async def pushFreeGames():
     logging.debug(f"Bot starting to push free items to channel(s)...")
 
@@ -261,21 +269,21 @@ def freeGameCard(item_free):
     card = Card(theme=Types.Theme.INFO)
     card.append(
         Module.Section(text=Element.Text(f"**Epic 商店限时免费领取物品！**", type=Types.Text.KMD),
-                       accessory=Element.Image('https://img.kookapp.cn/assets/2022-10/KAjElZw7xh02s038.png/ld',
-                                               circle=False)))
+                       accessory=Element.Image('https://img.kookapp.cn/assets/2022-10/2BwJawa4NY0dz0e8.jpg',
+                                               circle=False, size=Types.Size.SM)))
     card.append(Module.Divider())
     card.append(Module.Section(Element.Text(f"**[{item_free[2]}]({item_free[4]})**", type=Types.Text.KMD)))
     # 如果现在能领取
     if db_start_time_bj < now_time < db_end_time_bj:
         card.append(Module.Section(text=Element.Text(f"**`{db_end_time_bj}` 之前**", type=Types.Text.KMD),
-                                   accessory=Element.Button(f"获得", f"{item_free[4]}",
+                                   accessory=Element.Button(f"获取", f"{item_free[4]}",
                                                             theme=Types.Theme.INFO, click=Types.Click.LINK)))
         card.append(Module.Context(Element.Text("离免费领取时间(ins)**结束**(ins)还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
     # 现在不能领取
     elif now_time < db_start_time_bj:
         card.append(Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至 `{db_end_time_bj}`**", type=Types.Text.KMD),
-                                   accessory=Element.Button(f"获得", f"{item_free[4]}",
+                                   accessory=Element.Button(f"即将推出", f"{item_free[4]}",
                                                             theme=Types.Theme.INFO, click=Types.Click.LINK)))
         card.append(Module.Context(Element.Text("离免费领取时间(ins)**开始**(ins)还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_start_time_bj, mode=Types.CountdownMode.DAY))
