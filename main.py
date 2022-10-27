@@ -18,7 +18,7 @@ with open('config/bot-config.json', 'r', encoding='utf-8') as f:
     botConfig = json.load(f)
 
 # 用读取来的 bot-config 初始化 bot
-developersID = botConfig['developers']
+developers = botConfig['developers']
 botToken = botConfig['token']
 botMarketUUID = botConfig['bot_market_uuid']
 
@@ -69,11 +69,12 @@ async def epic(msg: Message, command: str = None, *args):
     current_user = await current_guild.fetch_user(msg.author.id)
     # 需要Bot拥有管理角色权限
     current_user_roles = await current_user.fetch_roles()
-    if any(current_user_roles):
+    if any(current_user_roles) or msg.author.id in current_guild.master_id:
         # 遍历用户的角色构成
         for user_role in current_user_roles:
-            # TODO 如果是服务器管理员才能执行操作，获取用户的permissions并判断是否有管理员(0) 频道管理(5)
-            if user_role.has_permission(0) or user_role.has_permission(5):
+            # 如果是服务器管理员才能执行操作，获取用户的permissions并判断是否有管理员(0) 频道管理(5)
+            if user_role.has_permission(0) or user_role.has_permission(5) \
+                    or msg.author.id in current_guild.master_id or msg.author.id in developers:
                 # 如果有一个角色满足条件就只执行一次
                 try:
                     # 获取频道数据
@@ -157,7 +158,7 @@ async def epic(msg: Message, command: str = None, *args):
 欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，内有Steam限时免费游戏推送。""", type=MessageTypes.KMD)
 
                 except Exception as e:
-                    logging.error(e, exc_info=True)
+                    logging.exception(e, exc_info=True, stack_info=True)
                     await msg.reply("发生了一些未知错误，请联系开发者解决。")
 
                 finally:
@@ -171,7 +172,7 @@ async def epic(msg: Message, command: str = None, *args):
 @bot.command(name='admin', case_sensitive=False)
 async def admin(msg: Message, command: str = None, *args):
     msgLogging(msg)
-    if msg.author.id in developersID:
+    if msg.author.id in developers:
         try:
             if command is None:
                 await msg.reply("""`guilds` `here`""", type=MessageTypes.KMD)
@@ -180,10 +181,11 @@ async def admin(msg: Message, command: str = None, *args):
             elif command in ['guilds']:
                 list_guild = await bot.client.fetch_guild_list()
                 channels = channelSQL.get_all_channel()
+                items = epicFreeSQL.get_all_item()
                 cm = CardMessage(Card(
                     Module.Section(Element.Text(f"""加入了 {len(list_guild)} 个服务器
-{len(channels)} 个频道推送功能开启 """))
-                ))
+{len(channels)} 个频道推送功能开启 
+数据库中有 {len(items)} 行数据"""))))
                 await msg.reply(cm)
 
             elif command in ['here']:
@@ -197,16 +199,35 @@ async def admin(msg: Message, command: str = None, *args):
                 await msg.reply(f"{channel}")
 
         except Exception as e:
-            logging.error(e, exc_info=True)
+            logging.exception(e, exc_info=True, stack_info=True)
             await msg.reply(f"{e}")
 
 
 # ========================================定时任务================================================
 
-# --------------------------------------定时获取任务-----------------------------------------------
+
+# 分钟数定时任务
+@bot.task.add_interval(minutes=5)
+async def interval_minutes_tasks():
+    try:
+        # 获取Epic免费商品，写入数据库中
+        await getFreeGames()
+
+        # 查询没有没被推送过的免费商品  ”0“代表没被推送过，”1“代表已被推送过
+        items = epicFreeSQL.get_item_by_push_flag(0)
+        if any(items):
+            # 执行推送任务
+            await pushFreeGames(items)
+        else:
+            logging.debug(f"No free item to be pushed to the channel")
+
+    except Exception as e:
+        logging.exception(e, exc_info=True, stack_info=True)
+
+
+# ----------------------------------------获取任务-----------------------------------------------
 
 # 定时获取Epic免费商品，写入数据库中
-@bot.task.add_interval(minutes=3)
 async def getFreeGames():
     logging.debug(f"Getting free items...")
     try:
@@ -220,16 +241,7 @@ async def getFreeGames():
         else:
             logging.debug(f"The {len(free_items)} item(s) inserted info the table fail, probably because of duplicate.")
     except Exception as e:
-        logging.error(e, exc_info=True)
-
-    # 查询没有没被推送过的免费商品  ”0“代表没被推送过，”1“代表已被推送过
-    items = epicFreeSQL.get_item_by_push_flag(0)
-    if any(items):
-        # 执行推送任务
-        logging.debug(f"Bot starting to push free items to channel(s)...")
-        await pushFreeGames(items)
-    else:
-        logging.debug(f"No free item to be pushed to the channel")
+        logging.exception(e, exc_info=True, stack_info=True)
 
 
 # ----------------------------------------推送任务-----------------------------------------------
@@ -238,9 +250,10 @@ async def getFreeGames():
 # 推送数据库中未被推送过的商品信息
 async def pushFreeGames(items):
     try:
+        logging.debug(f"Bot starting to push free items to channel(s)...")
         # 查询数据库中开启订阅功能的频道id-channel[4] “0”代表关闭，“1”代表开启
         sub_channels = channelSQL.get_channel_by_push_flag_free(1)
-        # 遍历频道，给频道进行推送
+        # 遍历频道，给频道进行推送 TODO 一个频道一个频道发送效率是否不够高?
         for channel in sub_channels:
             channel_id: str = channel[4]
             try:
@@ -253,7 +266,7 @@ async def pushFreeGames(items):
                         db_end_time = datetime.fromisoformat(item[13][:-1])
                         # 如果还未结束领取，进行推送
                         if db_end_time > now_time:
-                            # 进行推送 TODO 一个频道一个频道发送效率是否不够高
+                            # 进行推送
                             await bot.client.send(target=target_channel, type=MessageTypes.CARD,
                                                   content=freeGameCard(item))
                             # 推送完毕
@@ -273,7 +286,7 @@ async def pushFreeGames(items):
                 logging.info(f"Item({item[1]}) push flag update failed.")
 
     except Exception as e:
-        logging.error(e, exc_info=True)
+        logging.exception(e, exc_info=True, stack_info=True)
 
 
 # ========================================卡片部分================================================

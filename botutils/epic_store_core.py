@@ -22,6 +22,6 @@ async def getEpicFreeGames() -> list:
                     logging.error(f"No Epic Free Games")
                     return []
     except Exception as e:
-        logging.error(f"Get Epic Free Games Exception: {e}")
+        logging.exception(f"Get Epic Free Games Exception: {e}")
         return []
 

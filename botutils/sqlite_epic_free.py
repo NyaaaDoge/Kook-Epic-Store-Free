@@ -109,7 +109,7 @@ class EpicFreeGamesSQL:
                     logging.debug(f"Item({item['id']} : {title}) has been inserted into table.")
             return True
         except Exception as e:
-            logging.error(e, exc_info=True)
+            logging.exception(e, exc_info=True, stack_info=True)
             return False
 
     def get_item_by_push_flag(self, flag: int) -> list:
@@ -126,7 +126,7 @@ class EpicFreeGamesSQL:
             else:
                 return result
         except Exception as e:
-            logging.error(e)
+            logging.exception(e, exc_info=True, stack_info=True)
 
     def get_all_item(self) -> list:
         """
@@ -141,7 +141,7 @@ class EpicFreeGamesSQL:
             else:
                 return result
         except Exception as e:
-            logging.error(e)
+            logging.exception(e, exc_info=True, stack_info=True)
 
     def update_item_push_flag_by_game_id(self, game_id, flag: int):
         """
@@ -156,5 +156,5 @@ class EpicFreeGamesSQL:
             conn.commit()
             return True
         except Exception as e:
-            logging.error(e)
+            logging.exception(e, exc_info=True, stack_info=True)
             return False
