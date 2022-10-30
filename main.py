@@ -7,12 +7,14 @@ from botutils import sqlite_epic_free, sqlite_kook_channel, epic_store_core
 from khl import Bot, Message, MessageTypes
 from khl.card import CardMessage, Card, Module, Element, Types
 
-BOT_VERSION = 'v0.0.1 20221020'
+BOT_VERSION = 'v0.0.1 20221030'
 
 # 日志信息
 logging.basicConfig(level='INFO', format='%(asctime)s - %(name)s - %(levelname)s -%(message)s')
 
 # ========================================初始化================================================
+
+logging.info(f"----Bot Version: {BOT_VERSION}----")
 
 with open('config/bot-config.json', 'r', encoding='utf-8') as f:
     botConfig = json.load(f)
@@ -38,10 +40,11 @@ def msgLogging(msg: Message):
 # 向botmarket通信
 @bot.task.add_interval(minutes=30)
 async def botmarket():
-    api = "http://bot.gekj.net/api/v1/online.bot"
-    headers = {'uuid': botMarketUUID}
-    async with aiohttp.ClientSession() as session:
-        await session.post(api, headers=headers)
+    if any(botMarketUUID):
+        botmarket_api = "http://bot.gekj.net/api/v1/online.bot"
+        headers = {'uuid': botMarketUUID}
+        async with aiohttp.ClientSession() as session:
+            await session.get(botmarket_api, headers=headers)
 
 
 #################################################################################################
@@ -84,13 +87,18 @@ async def epic(msg: Message, command: str = None, *args):
                                'master_id': current_guild.master_id, 'channel_id': current_channel_id,
                                'channel_name': current_channel.name}
 
-                    if command in ['free', '免费']:
+                    if command in ['free']:
                         if not any(args):
-                            await msg.reply("""`.epic free on` 在该频道开启Epic免费游戏推送。注意：一个服务器只能有一个频道能进行推送。
-`.epic free off`  关闭Epic免费游戏推送，注意：该指令在任何频道都生效。""", type=MessageTypes.KMD)
+                            await msg.reply("""用法帮助：
+`.epic free on`     在该频道开启Epic免费游戏推送。注意：一个服务器只能有一个频道能进行推送。
+`.epic free off`    关闭Epic免费游戏推送，注意：该指令在服务器内任何频道都生效。
+
+> 建议在服务器单独开设一个频道接收Epic免费游戏资讯，将该文字频道的频道的Epic Store Free角色的可见和发送消息权限设置为开启。
+如果觉得Epic Store Free好用的话，欢迎来 **[Bot Market页面](https://www.botmarket.cn/)** 发表评价。
+欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。""", type=MessageTypes.KMD)
 
                         # 开启订阅
-                        elif args[0] in ['on', '开']:
+                        elif args[0] in ['on']:
                             db_Channel = channelSQL.get_channel_by_channel_id(current_channel_id)
                             # 如果频道已经在数据库中不执行插入，执行修改推送flag_push_free
                             if any(db_Channel):
@@ -111,7 +119,7 @@ async def epic(msg: Message, command: str = None, *args):
                                     # 开启订阅功能，同时推送限时领取商品
                                     insert_flag = channelSQL.insert_channel_free_default(channel)
                                     if insert_flag:
-                                        logging.debug(f"Channel{channel} subscribe successfully")
+                                        logging.info(f"Channel{channel} subscribe successfully")
                                         await msg.reply("服务器新增推送频道成功！同时Epic商店限时免费商品推送功能 **[:green_square:开启]**。",
                                                         type=MessageTypes.KMD)
                                         now_time = datetime.now()
@@ -136,9 +144,10 @@ async def epic(msg: Message, command: str = None, *args):
                                 else:
                                     await msg.reply(f""":red_square:服务器新增推送频道失败，一个服务器只能有一个频道进行推送！当前服务器已有频道加入过推送功能！
 频道名称：**{db_Channel[5]}**
-频道ID：**{db_Channel[4]}**""", type=MessageTypes.KMD)
+频道ID：**{db_Channel[4]}**
+(chn){db_Channel[4]}(chn)""", type=MessageTypes.KMD)
 
-                        elif args[0] in ['off', '关']:
+                        elif args[0] in ['off']:
                             # 根据服务器id删除数据库中的channel
                             unsub_flag = channelSQL.delete_channel_by_guild_id(current_guild.id)
                             if unsub_flag:
@@ -151,11 +160,11 @@ async def epic(msg: Message, command: str = None, *args):
                     elif command is None:
                         await msg.reply("""用法帮助：
 `.epic free on`     在该频道开启Epic免费游戏推送。注意：一个服务器只能有一个频道能进行推送。
-`.epic free off`    关闭Epic免费游戏推送，注意：该指令在任何频道都生效。
+`.epic free off`    关闭Epic免费游戏推送，注意：该指令在服务器内任何频道都生效。
 
 > 建议在服务器单独开设一个频道接收Epic免费游戏资讯，将该文字频道的频道的Epic Store Free角色的可见和发送消息权限设置为开启。
 如果觉得Epic Store Free好用的话，欢迎来 **[Bot Market页面](https://www.botmarket.cn/)** 发表评价。
-欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，内有Steam限时免费游戏推送。""", type=MessageTypes.KMD)
+欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。""", type=MessageTypes.KMD)
 
                 except Exception as e:
                     logging.exception(e, exc_info=True, stack_info=True)
@@ -169,23 +178,25 @@ async def epic(msg: Message, command: str = None, *args):
 
 
 # 开发者指令
-@bot.command(name='admin', case_sensitive=False)
+@bot.command(name='admin', prefixes=[".", "。"], case_sensitive=False)
 async def admin(msg: Message, command: str = None, *args):
     msgLogging(msg)
     if msg.author.id in developers:
         try:
             if command is None:
-                await msg.reply("""`guilds` `here`""", type=MessageTypes.KMD)
+                await msg.reply("`.admin info` 查看Epic Store Free订阅服务器相关信息\n"
+                                "`.admin here` 查看本频道相关信息\n"
+                                ".admin leave {gid} 退出指定服务器", type=MessageTypes.KMD)
 
             # 查看开启推送功能的频道，从数据库中查询
-            elif command in ['guilds']:
+            elif command in ['info']:
                 list_guild = await bot.client.fetch_guild_list()
                 channels = channelSQL.get_all_channel()
-                items = epicFreeSQL.get_all_item()
+                free_items = epicFreeSQL.get_all_item()
                 cm = CardMessage(Card(
                     Module.Section(Element.Text(f"""加入了 {len(list_guild)} 个服务器
 {len(channels)} 个频道推送功能开启 
-数据库中有 {len(items)} 行数据"""))))
+免费游戏数据库中有 {len(free_items)} 行数据"""))))
                 await msg.reply(cm)
 
             elif command in ['here']:
@@ -198,6 +209,28 @@ async def admin(msg: Message, command: str = None, *args):
                            'channel_name': current_channel.name}
                 await msg.reply(f"{channel}")
 
+            elif command in ['leave']:
+                if not any(args):
+                    await msg.reply("用法 `.admin leave {gid}`", type=MessageTypes.KMD)
+
+                elif len(args) == 1:
+                    try:
+                        target_guild = await bot.client.fetch_guild(args[0])
+                        await msg.reply(f"获取到Bot加入了此服务器。服务器信息如下：\n"
+                                        f"服务器id: {target_guild.id}\n"
+                                        f"服务器name: {target_guild.name}\n"
+                                        f"服务器master_id: {target_guild.master_id}\n"
+                                        f"您确定要退出该服务器吗？\n"
+                                        f"确定请输入 `.admin leave {target_guild.id} confirm`", type=MessageTypes.KMD)
+                    except Exception as e:
+                        logging.exception(e, exc_info=True)
+                        await msg.reply("获取服务器失败，请检查服务器id是否正确。", type=MessageTypes.KMD)
+
+                elif any(args[0]) and args[1] == "confirm":
+                    target_guild = await bot.client.fetch_guild(args[0])
+                    await target_guild.leave()
+                    await msg.reply("Bot成功退出此服务器！", type=MessageTypes.KMD)
+
         except Exception as e:
             logging.exception(e, exc_info=True, stack_info=True)
             await msg.reply(f"{e}")
@@ -207,19 +240,21 @@ async def admin(msg: Message, command: str = None, *args):
 
 
 # 分钟数定时任务
-@bot.task.add_interval(minutes=5)
+@bot.task.add_interval(minutes=10)
 async def interval_minutes_tasks():
     try:
         # 获取Epic免费商品，写入数据库中
+        logging.info(f"Execute getFreeGames task...")
         await getFreeGames()
 
         # 查询没有没被推送过的免费商品  ”0“代表没被推送过，”1“代表已被推送过
         items = epicFreeSQL.get_item_by_push_flag(0)
         if any(items):
             # 执行推送任务
+            logging.info(f"Execute pushFreeGames task...")
             await pushFreeGames(items)
         else:
-            logging.debug(f"No free item to be pushed to the channel")
+            logging.info(f"No free item to be pushed to the channel")
 
     except Exception as e:
         logging.exception(e, exc_info=True, stack_info=True)
@@ -229,19 +264,23 @@ async def interval_minutes_tasks():
 
 # 定时获取Epic免费商品，写入数据库中
 async def getFreeGames():
-    logging.debug(f"Getting free items...")
     try:
+        logging.info(f"Getting free items...")
         # 获取免费商品
         free_items = await epic_store_core.getEpicFreeGames()
-        logging.debug(f"Got {len(free_items)} free item(s).")
+        logging.info(f"Got {len(free_items)} free item(s).")
         # 将免费商品写入数据库中
         flag_insert = epicFreeSQL.insert_item(free_items)
         if flag_insert:
             logging.debug(f"Insert {len(free_items)} item(s) info into the table successfully.")
         else:
             logging.debug(f"The {len(free_items)} item(s) inserted info the table fail, probably because of duplicate.")
+
     except Exception as e:
         logging.exception(e, exc_info=True, stack_info=True)
+
+    finally:
+        logging.info("Task getFreeGames done.")
 
 
 # ----------------------------------------推送任务-----------------------------------------------
@@ -250,10 +289,10 @@ async def getFreeGames():
 # 推送数据库中未被推送过的商品信息
 async def pushFreeGames(items):
     try:
-        logging.debug(f"Bot starting to push free items to channel(s)...")
+        logging.info(f"Pushing free items...")
         # 查询数据库中开启订阅功能的频道id-channel[4] “0”代表关闭，“1”代表开启
         sub_channels = channelSQL.get_channel_by_push_flag_free(1)
-        # 遍历频道，给频道进行推送 TODO 一个频道一个频道发送效率是否不够高?
+        # 遍历频道，给频道进行推送
         for channel in sub_channels:
             channel_id: str = channel[4]
             try:
@@ -274,7 +313,7 @@ async def pushFreeGames(items):
                                 f"Free item{{game_id-{item[1]}:{item[2]}}} has been pushed to channel{{G_id-{target_channel.guild_id}, C_name-{target_channel.name}, C_id-{target_channel.id}}}")
 
             except Exception as e:
-                logging.error(f"Channel{channel}: {e}")
+                logging.exception(f"Channel{channel}: {e}")
 
         # 推送完毕需要更改数据库中flag信息
         for item in items:
@@ -287,6 +326,9 @@ async def pushFreeGames(items):
 
     except Exception as e:
         logging.exception(e, exc_info=True, stack_info=True)
+
+    finally:
+        logging.info("Task pushFreeGames done.")
 
 
 # ========================================卡片部分================================================
@@ -328,6 +370,8 @@ def freeGameCard(item_free):
     card.append(Module.Container(Element.Image(f"{item_free[7]}")))
     card.append(Module.Context(f"登陆Epic商店日期：{fmt_release_time}\n发行商：{item_free[10]}"))
     card.append(Module.Section(text=Element.Text(f"{item_free[3]}", type=Types.Text.KMD)))
+    card.append(Module.Context(Element.Text('[Bot Market页面](https://www.botmarket.cn/market) | '
+                                            '[加入Bot交流服务器获取更多资讯](https://kook.top/nGr9DH)', type=Types.Text.KMD)))
 
     card_message.append(card)
     return card_message
