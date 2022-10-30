@@ -7,16 +7,16 @@ EPIC_FREE_GAMES_URL = "https://store-site-backend-static-ipv4.ak.epicgames.com/f
 async def getEpicFreeGames() -> list:
     headers = {
         "Referer": "https://www.epicgames.com/store/zh-CN/",
-        "Content-Type": "application/json; charset=utf-8",
-        "Accept-Language": "q=0.9,zh;q=0.8,zh-CN;q=0.7,zh-TW;q=0.6,zh-HK;q=0.5",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
     }
     try:
+        logging.info(f"Getting epic store free games from API...")
         async with aiohttp.ClientSession() as session:
             async with session.get(EPIC_FREE_GAMES_URL, headers=headers) as response:
                 response_json = await response.json()
                 if any(response_json):
                     free_games = response_json["data"]["Catalog"]["searchStore"]["elements"]
+                    logging.info(f"Got {len(free_games)} item(s) from API.")
                     return free_games
                 else:
                     logging.error(f"No Epic Free Games")
