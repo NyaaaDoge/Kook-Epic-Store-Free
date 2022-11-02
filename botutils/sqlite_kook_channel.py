@@ -4,49 +4,46 @@ from pathlib import Path
 
 SQL = Path() / "data" / "epic.db"
 
+logger = logging.getLogger(__name__)
+
 
 # KOOK频道
-# class KookChannel:
-#
-#     def __init__(self, channel_id):
-#         if channel_id is not None:
-#             query_result = KookChannelSQL.get_channel_by_channel_id(channel_id)
-#             self._guild_id = query_result[1]
-#             self._guild_name = query_result[2]
-#             self._master_id = query_result[3]
-#             self._channel_id = query_result[4]
-#             self._channel_name = query_result[5]
-#             self._flag_push_free = query_result[6]
-#
-#         else:
-#             raise ValueError("'channel_id' argument must be supplied.")
-#
-#     def __repr__(self):
-#         return f'{self._guild_id} : {self._channel_id} - {self._channel_name}'
-#
-#     @property
-#     def guild_id(self) -> str:
-#         return self._guild_id
-#
-#     @property
-#     def guild_name(self) -> str:
-#         return self._guild_name
-#
-#     @property
-#     def master_id(self) -> str:
-#         return self._master_id
-#
-#     @property
-#     def channel_id(self) -> str:
-#         return self._channel_id
-#
-#     @property
-#     def channel_name(self) -> str:
-#         return self._channel_name
-#
-#     @property
-#     def flag_push_free(self) -> str:
-#         return self._flag_push_free
+class DatabaseKookChannel:
+
+    def __init__(self, ID, guild_id, guild_name, master_id, channel_id, channel_name, flag_push_free):
+        self.__guild_id = guild_id
+        self.__guild_name = guild_name
+        self.__master_id = master_id
+        self.__channel_id = channel_id
+        self.__channel_name = channel_name
+        self.__flag_push_free = flag_push_free
+
+    @property
+    def guild_id(self) -> str:
+        return self.__guild_id
+
+    @property
+    def guild_name(self) -> str:
+        return self.__guild_name
+
+    @property
+    def master_id(self) -> str:
+        return self.__master_id
+
+    @property
+    def channel_id(self) -> str:
+        return self.__channel_id
+
+    @property
+    def channel_name(self) -> str:
+        return self.__channel_name
+
+    @property
+    def flag_push_free(self) -> str:
+        return self.__flag_push_free
+
+    def __str__(self):
+        return f"{self.__channel_id}-{self.__channel_name}"
 
 
 class KookChannelSQL:
@@ -77,7 +74,7 @@ class KookChannelSQL:
         except sqlite3.OperationalError:
             pass
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
 
     def update_sqlite(self):
         try:
@@ -85,7 +82,7 @@ class KookChannelSQL:
             result = conn.execute(f"")
             return result
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
             return e
 
     def insert_channel_free_default(self, channel):
@@ -111,9 +108,10 @@ class KookChannelSQL:
                 '{channel['channel_name']}',
                 1)""")
             conn.commit()
+            logger.info(f"Channel({channel['guild_id']}:{channel['guild_name']}) has been inserted into table.")
             return True
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
             return False
 
     def get_channel_by_push_flag_free(self, flag: int) -> list:
@@ -130,7 +128,7 @@ class KookChannelSQL:
             else:
                 return result
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
 
     def update_channel_push_flag_free_by_channel_id(self, channel_id, flag: int):
         """
@@ -145,7 +143,7 @@ class KookChannelSQL:
             conn.commit()
             return True
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
             return False
 
     def delete_channel_by_channel_id(self, channel_id):
@@ -155,7 +153,7 @@ class KookChannelSQL:
             conn.commit()
             return True
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
             return False
 
     def delete_channel_by_guild_id(self, guild_id):
@@ -165,7 +163,7 @@ class KookChannelSQL:
             conn.commit()
             return True
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
             return False
 
     def get_channel_by_channel_id(self, channel_id):
@@ -177,7 +175,7 @@ class KookChannelSQL:
             else:
                 return result
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
             return []
 
     def get_channel_by_guild_id(self, guild_id):
@@ -189,7 +187,7 @@ class KookChannelSQL:
             else:
                 return result
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
             return []
 
     def get_all_channel(self):
@@ -201,5 +199,5 @@ class KookChannelSQL:
             else:
                 return result
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
             return []
