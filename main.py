@@ -75,111 +75,112 @@ async def epic(msg: Message, command: str = None, *args):
     current_guild = await bot.client.fetch_guild(current_channel_guild_id)
 
     current_user = await current_guild.fetch_user(msg.author.id)
-    # 需要Bot拥有管理角色权限
-    current_user_roles = await current_user.fetch_roles()
-    if any(current_user_roles) or msg.author.id in current_guild.master_id:
-        # 遍历用户的角色构成
-        for user_role in current_user_roles:
-            # 如果是服务器管理员才能执行操作，获取用户的permissions并判断是否有管理员(0) 频道管理(5)
-            if user_role.has_permission(0) or user_role.has_permission(5) \
-                    or msg.author.id in current_guild.master_id or msg.author.id in developers:
-                # 如果有一个角色满足条件就只执行一次
-                try:
-                    # 获取频道数据
-                    current_channel_id = msg.ctx.channel.id
-                    current_channel = await bot.client.fetch_public_channel(current_channel_id)
-                    channel = {'guild_id': current_channel_guild_id, 'guild_name': current_guild.name,
-                               'master_id': current_guild.master_id, 'channel_id': current_channel_id,
-                               'channel_name': current_channel.name}
+    try:
+        # 需要Bot拥有管理角色权限
+        current_user_roles = await current_user.fetch_roles()
+        if any(current_user_roles) or msg.author.id in current_guild.master_id:
+            # 遍历用户的角色构成
+            for user_role in current_user_roles:
+                # 如果是服务器管理员才能执行操作，获取用户的permissions并判断是否有管理员(0) 频道管理(5)
+                if user_role.has_permission(0) or user_role.has_permission(5) \
+                        or msg.author.id in current_guild.master_id or msg.author.id in developers:
+                    # 如果有一个角色满足条件就只执行一次
+                    try:
+                        # 获取频道数据
+                        current_channel_id = msg.ctx.channel.id
+                        current_channel = await bot.client.fetch_public_channel(current_channel_id)
+                        channel = {'guild_id': current_channel_guild_id, 'guild_name': current_guild.name,
+                                   'master_id': current_guild.master_id, 'channel_id': current_channel_id,
+                                   'channel_name': current_channel.name}
 
-                    if command in ['free']:
-                        if not any(args):
-                            await msg.reply("""用法帮助：
+                        help_str = """用法帮助：
 `.epic free on`     在该频道开启Epic免费游戏推送。注意：一个服务器只能有一个频道能进行推送。
 `.epic free off`    关闭Epic免费游戏推送，注意：该指令在服务器内任何频道都生效。
 
 > 建议在服务器单独开设一个频道接收Epic免费游戏资讯，将该文字频道的频道的Epic Store Free角色的可见和发送消息权限设置为开启。
 如果觉得Epic Store Free好用的话，欢迎来 **[Bot Market页面](https://www.botmarket.cn/)** 发表评价。
-欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。""", type=MessageTypes.KMD)
+欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。"""
 
-                        # 开启订阅
-                        elif args[0] in ['on']:
-                            db_Channel = channelSQL.get_channel_by_channel_id(current_channel_id)
-                            # 如果频道已经在数据库中不执行插入，执行修改推送flag_push_free
-                            if any(db_Channel):
-                                # 没开启推送，修改flag至开启
-                                if db_Channel[6] == 0:
-                                    channelSQL.update_channel_push_flag_free_by_channel_id(current_channel_id, 1)
-                                    await msg.reply("订阅Epic商店限时免费商品推送功能 **[:green_square:开启]** 成功",
-                                                    type=MessageTypes.KMD)
-                                else:
-                                    await msg.reply("订阅Epic商店限时免费商品推送功能 **[:yellow_square:开启]**，目前频道已开启推送功能！",
-                                                    type=MessageTypes.KMD)
-                            # 频道不在数据库中，执行插入操作
-                            else:
-                                # 验证是否为同一个服务器
-                                db_Channel = channelSQL.get_channel_by_guild_id(current_guild.id)
-                                # 如果不是同一个服务器
-                                if not any(db_Channel):
-                                    # 开启订阅功能，同时推送限时领取商品
-                                    insert_flag = channelSQL.insert_channel_free_default(channel)
-                                    if insert_flag:
-                                        logger.info(f"Channel{channel} subscribe successfully")
-                                        await msg.reply("服务器新增推送频道成功！同时Epic商店限时免费商品推送功能 **[:green_square:开启]**。",
+                        if command in ['free']:
+                            if not any(args):
+                                await msg.reply(help_str, type=MessageTypes.KMD)
+
+                            # 开启订阅
+                            elif args[0] in ['on']:
+                                db_Channel = channelSQL.get_channel_by_channel_id(current_channel_id)
+                                # 如果频道已经在数据库中不执行插入，执行修改推送flag_push_free
+                                if any(db_Channel):
+                                    # 没开启推送，修改flag至开启
+                                    if db_Channel[6] == 0:
+                                        channelSQL.update_channel_push_flag_free_by_channel_id(current_channel_id, 1)
+                                        await msg.reply("订阅Epic商店限时免费商品推送功能 **[:green_square:开启]** 成功",
                                                         type=MessageTypes.KMD)
-                                        now_time = datetime.now()
-                                        free_items = epicFreeSQL.get_all_item()
-                                        for item in free_items:
-                                            # 有截止日期
-                                            if not item[13] == '':
-                                                db_end_time = datetime.fromisoformat(item[13][:-1])
-                                                # 如果还未结束领取，先进行推送
-                                                if db_end_time > now_time:
-                                                    # 进行推送
-                                                    await bot.client.send(target=current_channel,
-                                                                          type=MessageTypes.CARD,
-                                                                          content=freeGameCard(item))
-                                                    # 推送完毕
-                                                    logger.info(
-                                                        f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel{{G_id-{current_channel.guild_id}, C_name-{current_channel.name}, C_id-{current_channel.id}}}")
                                     else:
-                                        await msg.reply(":yellow_square:服务器新增推送频道失败，因为目前频道已加入过推送功能！",
+                                        await msg.reply("订阅Epic商店限时免费商品推送功能 **[:yellow_square:开启]**，目前频道已开启推送功能！",
                                                         type=MessageTypes.KMD)
-                                # 同一个服务器
+                                # 频道不在数据库中，执行插入操作
                                 else:
-                                    await msg.reply(f""":red_square:服务器新增推送频道失败，一个服务器只能有一个频道进行推送！当前服务器已有频道加入过推送功能！
-频道名称：**{db_Channel[5]}**
-频道ID：**{db_Channel[4]}**
-(chn){db_Channel[4]}(chn)""", type=MessageTypes.KMD)
+                                    # 验证是否为同一个服务器
+                                    db_Channel = channelSQL.get_channel_by_guild_id(current_guild.id)
+                                    # 如果不是同一个服务器
+                                    if not any(db_Channel):
+                                        # 开启订阅功能，同时推送限时领取商品
+                                        insert_flag = channelSQL.insert_channel_free_default(channel)
+                                        if insert_flag:
+                                            logger.info(f"Channel{channel} subscribe successfully")
+                                            await msg.reply("服务器新增推送频道成功！同时Epic商店限时免费商品推送功能 **[:green_square:开启]**。",
+                                                            type=MessageTypes.KMD)
+                                            now_time = datetime.now()
+                                            free_items = epicFreeSQL.get_all_item()
+                                            for item in free_items:
+                                                # 有截止日期
+                                                if not item[13] == '':
+                                                    db_end_time = datetime.fromisoformat(item[13][:-1])
+                                                    # 如果还未结束领取，先进行推送
+                                                    if db_end_time > now_time:
+                                                        # 进行推送
+                                                        await bot.client.send(target=current_channel,
+                                                                              type=MessageTypes.CARD,
+                                                                              content=freeGameCard(item))
+                                                        # 推送完毕
+                                                        logger.info(
+                                                            f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel{{G_id-{current_channel.guild_id}, C_name-{current_channel.name}, C_id-{current_channel.id}}}")
+                                        else:
+                                            await msg.reply(":yellow_square:服务器新增推送频道失败，因为目前频道已加入过推送功能！",
+                                                            type=MessageTypes.KMD)
+                                    # 同一个服务器
+                                    else:
+                                        await msg.reply(f":red_square:服务器新增推送频道失败，一个服务器只能有一个频道进行推送！当前服务器已有频道加入过推送功能！\n"
+                                                        "频道名称：**{db_Channel[5]}**\n"
+                                                        "频道ID：**{db_Channel[4]}**\n"
+                                                        "(chn){db_Channel[4]}(chn)", type=MessageTypes.KMD)
 
-                        elif args[0] in ['off']:
-                            # 根据服务器id删除数据库中的channel
-                            unsub_flag = channelSQL.delete_channel_by_guild_id(current_guild.id)
-                            if unsub_flag:
-                                await msg.reply("订阅Epic商店限时免费商品推送功能 **[:black_large_square:关闭]** 成功",
-                                                type=MessageTypes.KMD)
-                            else:
-                                await msg.reply("订阅Epic商店限时免费商品推送功能 **[:red_square:关闭]** 失败，请联系Bot管理员解决！",
-                                                type=MessageTypes.KMD)
+                            elif args[0] in ['off']:
+                                # 根据服务器id删除数据库中的channel
+                                unsub_flag = channelSQL.delete_channel_by_guild_id(current_guild.id)
+                                if unsub_flag:
+                                    await msg.reply("订阅Epic商店限时免费商品推送功能 **[:black_large_square:关闭]** 成功",
+                                                    type=MessageTypes.KMD)
+                                else:
+                                    await msg.reply("订阅Epic商店限时免费商品推送功能 **[:red_square:关闭]** 失败，请联系Bot管理员解决！",
+                                                    type=MessageTypes.KMD)
 
-                    elif command is None:
-                        await msg.reply("""用法帮助：
-`.epic free on`     在该频道开启Epic免费游戏推送。注意：一个服务器只能有一个频道能进行推送。
-`.epic free off`    关闭Epic免费游戏推送，注意：该指令在服务器内任何频道都生效。
+                        elif command is None:
+                            await msg.reply(help_str, type=MessageTypes.KMD)
 
-> 建议在服务器单独开设一个频道接收Epic免费游戏资讯，将该文字频道的频道的Epic Store Free角色的可见和发送消息权限设置为开启。
-如果觉得Epic Store Free好用的话，欢迎来 **[Bot Market页面](https://www.botmarket.cn/)** 发表评价。
-欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。""", type=MessageTypes.KMD)
+                    except Exception as e:
+                        logger.exception(e, exc_info=True)
+                        await msg.reply("发生了一些未知错误，请联系开发者解决。")
 
-                except Exception as e:
-                    logger.exception(e, exc_info=True)
-                    await msg.reply("发生了一些未知错误，请联系开发者解决。")
+                    finally:
+                        break
 
-                finally:
-                    break
+                else:
+                    await msg.reply(f"您没有权限 管理员 或 频道管理，故无法进行操作！")
 
-            else:
-                await msg.reply(f"您没有权限 管理员 或 频道管理，故无法进行操作！")
+    except Exception as e:
+        logger.exception(e, exc_info=True)
+        await msg.reply(f"Bot没有管理角色权限！故无法进行操作！")
 
 
 # 开发者指令
@@ -364,7 +365,7 @@ def freeGameCard(item_free):
     # 现在不能领取
     elif now_time < db_start_time_bj:
         card.append(
-            Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至\n`{db_end_time_bj}`**", type=Types.Text.KMD),
+            Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至 `{db_end_time_bj}`**", type=Types.Text.KMD),
                            accessory=Element.Button(f"即将推出", f"{db_item.store_url}",
                                                     theme=Types.Theme.INFO, click=Types.Click.LINK)))
         card.append(Module.Context(Element.Text("离免费领取时间**开始**还有：", type=Types.Text.KMD)))
