@@ -7,14 +7,16 @@ from botutils import sqlite_epic_free, sqlite_kook_channel, epic_store_core
 from khl import Bot, Message, MessageTypes
 from khl.card import CardMessage, Card, Module, Element, Types
 
-BOT_VERSION = 'v0.0.1 20221030'
+BOT_VERSION = 'v0.0.2 20221101'
+
+logger = logging.getLogger("Main")
 
 # 日志信息
 logging.basicConfig(level='INFO', format='%(asctime)s - %(name)s - %(levelname)s -%(message)s')
 
 # ========================================初始化================================================
 
-logging.info(f"----Bot Version: {BOT_VERSION}----")
+logger.info(f"Bot Version: {BOT_VERSION}")
 
 with open('config/bot-config.json', 'r', encoding='utf-8') as f:
     botConfig = json.load(f)
@@ -33,8 +35,11 @@ epicFreeSQL = sqlite_epic_free.EpicFreeGamesSQL()
 
 # 日志
 def msgLogging(msg: Message):
-    logging.info(
-        f" Message:{{ G_id:{msg.ctx.guild.id} - C_id:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} = {msg.content} }}")
+    logger.info(
+        f"Message(G_id:{msg.ctx.guild.id} - "
+        f"C_id:{msg.ctx.channel.id} - "
+        f"Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - "
+        f"Content = {msg.content})")
 
 
 # 向botmarket通信
@@ -119,7 +124,7 @@ async def epic(msg: Message, command: str = None, *args):
                                     # 开启订阅功能，同时推送限时领取商品
                                     insert_flag = channelSQL.insert_channel_free_default(channel)
                                     if insert_flag:
-                                        logging.info(f"Channel{channel} subscribe successfully")
+                                        logger.info(f"Channel{channel} subscribe successfully")
                                         await msg.reply("服务器新增推送频道成功！同时Epic商店限时免费商品推送功能 **[:green_square:开启]**。",
                                                         type=MessageTypes.KMD)
                                         now_time = datetime.now()
@@ -135,8 +140,8 @@ async def epic(msg: Message, command: str = None, *args):
                                                                           type=MessageTypes.CARD,
                                                                           content=freeGameCard(item))
                                                     # 推送完毕
-                                                    logging.info(
-                                                        f"Free item{{game_id-{item[1]}:{item[2]}}} has been pushed to channel{{G_id-{current_channel.guild_id}, C_name-{current_channel.name}, C_id-{current_channel.id}}}")
+                                                    logger.info(
+                                                        f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel{{G_id-{current_channel.guild_id}, C_name-{current_channel.name}, C_id-{current_channel.id}}}")
                                     else:
                                         await msg.reply(":yellow_square:服务器新增推送频道失败，因为目前频道已加入过推送功能！",
                                                         type=MessageTypes.KMD)
@@ -167,7 +172,7 @@ async def epic(msg: Message, command: str = None, *args):
 欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。""", type=MessageTypes.KMD)
 
                 except Exception as e:
-                    logging.exception(e, exc_info=True, stack_info=True)
+                    logger.exception(e, exc_info=True)
                     await msg.reply("发生了一些未知错误，请联系开发者解决。")
 
                 finally:
@@ -186,7 +191,7 @@ async def admin(msg: Message, command: str = None, *args):
             if command is None:
                 await msg.reply("`.admin info` 查看Epic Store Free订阅服务器相关信息\n"
                                 "`.admin here` 查看本频道相关信息\n"
-                                ".admin leave {gid} 退出指定服务器", type=MessageTypes.KMD)
+                                "`.admin leave` {gid} 退出指定服务器", type=MessageTypes.KMD)
 
             # 查看开启推送功能的频道，从数据库中查询
             elif command in ['info']:
@@ -223,7 +228,7 @@ async def admin(msg: Message, command: str = None, *args):
                                         f"您确定要退出该服务器吗？\n"
                                         f"确定请输入 `.admin leave {target_guild.id} confirm`", type=MessageTypes.KMD)
                     except Exception as e:
-                        logging.exception(e, exc_info=True)
+                        logger.exception(e, exc_info=True)
                         await msg.reply("获取服务器失败，请检查服务器id是否正确。", type=MessageTypes.KMD)
 
                 elif any(args[0]) and args[1] == "confirm":
@@ -232,7 +237,7 @@ async def admin(msg: Message, command: str = None, *args):
                     await msg.reply("Bot成功退出此服务器！", type=MessageTypes.KMD)
 
         except Exception as e:
-            logging.exception(e, exc_info=True, stack_info=True)
+            logger.exception(e, exc_info=True)
             await msg.reply(f"{e}")
 
 
@@ -244,20 +249,20 @@ async def admin(msg: Message, command: str = None, *args):
 async def interval_minutes_tasks():
     try:
         # 获取Epic免费商品，写入数据库中
-        logging.info(f"Execute getFreeGames task...")
+        logger.info(f"Execute getFreeGames task...")
         await getFreeGames()
 
         # 查询没有没被推送过的免费商品  ”0“代表没被推送过，”1“代表已被推送过
         items = epicFreeSQL.get_item_by_push_flag(0)
         if any(items):
             # 执行推送任务
-            logging.info(f"Execute pushFreeGames task...")
+            logger.info(f"Execute pushFreeGames task...")
             await pushFreeGames(items)
         else:
-            logging.info(f"No free item to be pushed to the channel")
+            logger.info(f"No free item to be pushed to the channel")
 
     except Exception as e:
-        logging.exception(e, exc_info=True, stack_info=True)
+        logger.exception(e, exc_info=True)
 
 
 # ----------------------------------------获取任务-----------------------------------------------
@@ -265,22 +270,21 @@ async def interval_minutes_tasks():
 # 定时获取Epic免费商品，写入数据库中
 async def getFreeGames():
     try:
-        logging.info(f"Getting free items...")
+        logger.info(f"Getting free items...")
         # 获取免费商品
         free_items = await epic_store_core.getEpicFreeGames()
-        logging.info(f"Got {len(free_items)} free item(s).")
         # 将免费商品写入数据库中
         flag_insert = epicFreeSQL.insert_item(free_items)
         if flag_insert:
-            logging.debug(f"Insert {len(free_items)} item(s) info into the table successfully.")
+            logger.debug(f"Insert {len(free_items)} item(s) info into the table successfully.")
         else:
-            logging.debug(f"The {len(free_items)} item(s) inserted info the table fail, probably because of duplicate.")
+            logger.debug(f"The {len(free_items)} item(s) inserted info the table fail, probably because of duplicate.")
 
     except Exception as e:
-        logging.exception(e, exc_info=True, stack_info=True)
+        logger.exception(e, exc_info=True)
 
     finally:
-        logging.info("Task getFreeGames done.")
+        logger.info("Task getFreeGames done.")
 
 
 # ----------------------------------------推送任务-----------------------------------------------
@@ -289,7 +293,7 @@ async def getFreeGames():
 # 推送数据库中未被推送过的商品信息
 async def pushFreeGames(items):
     try:
-        logging.info(f"Pushing free items...")
+        logger.info(f"Pushing free items...")
         # 查询数据库中开启订阅功能的频道id-channel[4] “0”代表关闭，“1”代表开启
         sub_channels = channelSQL.get_channel_by_push_flag_free(1)
         # 遍历频道，给频道进行推送
@@ -309,38 +313,39 @@ async def pushFreeGames(items):
                             await bot.client.send(target=target_channel, type=MessageTypes.CARD,
                                                   content=freeGameCard(item))
                             # 推送完毕
-                            logging.info(
-                                f"Free item{{game_id-{item[1]}:{item[2]}}} has been pushed to channel{{G_id-{target_channel.guild_id}, C_name-{target_channel.name}, C_id-{target_channel.id}}}")
+                            logger.info(
+                                f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel(G_id-{target_channel.guild_id}, C_name-{target_channel.name}, C_id-{target_channel.id})")
 
             except Exception as e:
-                logging.exception(f"Channel{channel}: {e}")
+                logger.exception(f"Channel{channel}: {e}")
 
         # 推送完毕需要更改数据库中flag信息
         for item in items:
             flag_push = epicFreeSQL.update_item_push_flag_by_game_id(item[1], 1)
             if flag_push:
-                logging.info(
+                logger.info(
                     f"Item({item[1]}:{item[2]}) has been pushed to all channels and the push-flag updated to 1.")
             else:
-                logging.info(f"Item({item[1]}) push flag update failed.")
+                logger.info(f"Item({item[1]}) push flag update failed.")
 
     except Exception as e:
-        logging.exception(e, exc_info=True, stack_info=True)
+        logger.exception(e, exc_info=True)
 
     finally:
-        logging.info("Task pushFreeGames done.")
+        logger.info("Task pushFreeGames done.")
 
 
 # ========================================卡片部分================================================
 
 # 免费游戏卡片 按时间做分类
 def freeGameCard(item_free):
+    db_item = sqlite_epic_free.DatabaseFreeItem(*item_free)
     card_message = CardMessage()
 
     now_time = datetime.now()
-    fmt_release_time = datetime.fromisoformat(item_free[5][:-1]).strftime("%Y-%m-%d")
-    db_start_time_bj = datetime.fromisoformat(item_free[12][:-1]) + timedelta(hours=8)
-    db_end_time_bj = datetime.fromisoformat(item_free[13][:-1]) + timedelta(hours=8)
+    fmt_release_time = datetime.fromisoformat(db_item.epic_release_date[:-1]).strftime("%Y-%m-%d")
+    db_start_time_bj = datetime.fromisoformat(db_item.free_start_date[:-1]) + timedelta(hours=8)
+    db_end_time_bj = datetime.fromisoformat(db_item.free_end_date[:-1]) + timedelta(hours=8)
 
     card = Card(theme=Types.Theme.INFO)
     card.append(
@@ -348,30 +353,30 @@ def freeGameCard(item_free):
                        accessory=Element.Image('https://img.kookapp.cn/assets/2022-10/2BwJawa4NY0dz0e8.jpg',
                                                circle=False, size=Types.Size.SM)))
     card.append(Module.Divider())
-    card.append(Module.Section(Element.Text(f"**[{item_free[2]}]({item_free[4]})**", type=Types.Text.KMD)))
+    card.append(Module.Section(Element.Text(f"**[{db_item.title}]({db_item.store_url})**", type=Types.Text.KMD)))
     # 如果现在能领取
     if db_start_time_bj < now_time < db_end_time_bj:
         card.append(Module.Section(text=Element.Text(f"**`{db_end_time_bj}` 之前**", type=Types.Text.KMD),
-                                   accessory=Element.Button(f"获取", f"{item_free[4]}",
+                                   accessory=Element.Button(f"获取", f"{db_item.store_url}",
                                                             theme=Types.Theme.INFO, click=Types.Click.LINK)))
         card.append(Module.Context(Element.Text("离免费领取时间**结束**还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
     # 现在不能领取
     elif now_time < db_start_time_bj:
         card.append(
-            Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至 `{db_end_time_bj}`**", type=Types.Text.KMD),
-                           accessory=Element.Button(f"即将推出", f"{item_free[4]}",
+            Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至\n`{db_end_time_bj}`**", type=Types.Text.KMD),
+                           accessory=Element.Button(f"即将推出", f"{db_item.store_url}",
                                                     theme=Types.Theme.INFO, click=Types.Click.LINK)))
         card.append(Module.Context(Element.Text("离免费领取时间**开始**还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_start_time_bj, mode=Types.CountdownMode.DAY))
         card.append(Module.Context(Element.Text("离免费领取时间**结束**还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
 
-    card.append(Module.Container(Element.Image(f"{item_free[7]}")))
-    card.append(Module.Context(f"登陆Epic商店日期：{fmt_release_time}\n发行商：{item_free[10]}"))
-    card.append(Module.Section(text=Element.Text(f"{item_free[3]}", type=Types.Text.KMD)))
-    card.append(Module.Context(Element.Text('[Bot Market页面](https://www.botmarket.cn/market) | '
-                                            '[加入Bot交流服务器获取更多资讯](https://kook.top/nGr9DH)', type=Types.Text.KMD)))
+    card.append(Module.Container(Element.Image(f"{db_item.image_wide}")))
+    card.append(Module.Context(f"登陆Epic商店日期：{fmt_release_time}\n发行商：{db_item.seller}"))
+    card.append(Module.Section(text=Element.Text(f"{db_item.description}", type=Types.Text.KMD)))
+    card.append(Module.Context(Element.Text('[Bot Market页面](https://www.botmarket.cn/bots?id=108) | '
+                                            '[加入交流服务器获取更多资讯](https://kook.top/nGr9DH)', type=Types.Text.KMD)))
 
     card_message.append(card)
     return card_message
