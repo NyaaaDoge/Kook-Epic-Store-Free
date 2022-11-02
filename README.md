@@ -32,3 +32,4 @@
 ### 3. 其他
 
 本bot主要用于Kook服务器中推送相关资讯 [Steam阀门社](https://kook.top/nGr9DH)，欢迎加入Kook服务器，获取更多游戏资讯。
+Bot现已公开，Kook [Bot Market页面](https://www.botmarket.cn/bots?id=108)
