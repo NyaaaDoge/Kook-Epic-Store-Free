@@ -7,7 +7,7 @@ from botutils import sqlite_epic_free, sqlite_kook_channel, epic_store_core
 from khl import Bot, Message, MessageTypes
 from khl.card import CardMessage, Card, Module, Element, Types
 
-BOT_VERSION = 'v0.0.2 20221101'
+BOT_VERSION = 'v0.0.2 20221104'
 
 logger = logging.getLogger("Main")
 
@@ -92,8 +92,8 @@ async def epic(msg: Message, command: str = None, *args):
 `.epic free off`    关闭Epic免费游戏推送，注意：该指令在服务器内任何频道都生效。
 
 > 建议在服务器单独开设一个频道接收Epic免费游戏资讯，将该文字频道的频道的Epic Store Free角色的可见和发送消息权限设置为开启。
-如果觉得Epic Store Free好用的话，欢迎来 **[Bot Market页面](https://www.botmarket.cn/)** 发表评价。
-欢迎加入交流服务器 **[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。"""
+如果觉得Epic Store Free好用的话，欢迎来**[Bot Market页面](https://www.botmarket.cn/)**发表评价或[爱发电捐助我](https://afdian.net/a/NyaaaDoge)。
+欢迎加入交流服务器**[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。"""
 
             if command is None:
                 await msg.reply(help_str, type=MessageTypes.KMD)
@@ -240,6 +240,7 @@ async def admin(msg: Message, command: str = None, *args):
                                         f"服务器master_id: {target_guild.master_id}\n"
                                         f"您确定要退出该服务器吗？\n"
                                         f"确定请输入 `.admin leave {target_guild.id} confirm`", type=MessageTypes.KMD)
+
                     except Exception as e:
                         logger.exception(e, exc_info=True)
                         await msg.reply("获取服务器失败，请检查服务器id是否正确。", type=MessageTypes.KMD)
@@ -265,7 +266,7 @@ async def interval_minutes_tasks():
         logger.info(f"Execute getFreeGames task...")
         await getFreeGames()
 
-        # 查询没有没被推送过的免费商品  ”0“代表没被推送过，”1“代表已被推送过
+        # 查询没有没被推送过的免费商品  "0"代表没被推送过，"1"代表已被推送过
         items = epicFreeSQL.get_item_by_push_flag(0)
         if any(items):
             # 执行推送任务
@@ -291,7 +292,7 @@ async def getFreeGames():
         if flag_insert:
             logger.debug(f"Insert {len(free_items)} item(s) info into the table successfully.")
         else:
-            logger.debug(f"The {len(free_items)} item(s) inserted info the table fail, probably because of duplicate.")
+            logger.debug(f"The {len(free_items)} item(s) inserted info the table fail.")
 
     except Exception as e:
         logger.exception(e, exc_info=True)
@@ -307,7 +308,7 @@ async def getFreeGames():
 async def pushFreeGames(items):
     try:
         logger.info(f"Pushing free items...")
-        # 查询数据库中开启订阅功能的频道id-channel[4] “0”代表关闭，“1”代表开启
+        # 查询数据库中开启订阅功能的频道id-channel[4] "0"代表关闭，"1"代表开启
         sub_channels = channelSQL.get_channel_by_push_flag_free(1)
         # 遍历频道，给频道进行推送
         for channel in sub_channels:
@@ -379,7 +380,7 @@ def freeGameCard(item_free):
     # 现在不能领取
     elif now_time < db_start_time_bj:
         card.append(
-            Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至 `{db_end_time_bj}`**", type=Types.Text.KMD),
+            Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至\n`{db_end_time_bj}`**", type=Types.Text.KMD),
                            accessory=Element.Button(f"即将推出", f"{db_item.store_url}",
                                                     theme=Types.Theme.INFO, click=Types.Click.LINK)))
         card.append(Module.Context(Element.Text("离免费领取时间**开始**还有：", type=Types.Text.KMD)))
@@ -389,9 +390,10 @@ def freeGameCard(item_free):
 
     card.append(Module.Container(Element.Image(f"{db_item.image_wide}")))
     card.append(Module.Context(f"登陆Epic商店日期：{fmt_release_time}\n发行商：{db_item.seller}"))
-    card.append(Module.Section(text=Element.Text(f"{db_item.description}", type=Types.Text.KMD)))
-    card.append(Module.Context(Element.Text('[Bot Market页面](https://www.botmarket.cn/bots?id=108) | '
-                                            '[加入交流服务器获取更多资讯](https://kook.top/nGr9DH)', type=Types.Text.KMD)))
+    card.append(Module.Section(text=Element.Text(f"> {db_item.description}", type=Types.Text.KMD)))
+    card.append(Module.Context(Element.Text('[Bot Market](https://www.botmarket.cn/bots?id=108) | '
+                                            '[交流服务器内有更多资讯](https://kook.top/nGr9DH) | '
+                                            '[爱发电](https://afdian.net/a/NyaaaDoge)', type=Types.Text.KMD)))
 
     card_message.append(card)
     return card_message
