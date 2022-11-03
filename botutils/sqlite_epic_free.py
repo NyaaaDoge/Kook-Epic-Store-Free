@@ -11,6 +11,7 @@ class DatabaseFreeItem:
 
     def __init__(self, ID, game_id, title, description, store_url, epic_release_date, offer_type, image_wide,
                  image_tall, image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed):
+        self.__ID = ID
         self.__game_id = game_id
         self.__title = title
         self.__description = description
@@ -25,6 +26,10 @@ class DatabaseFreeItem:
         self.__free_start_date = free_start_date
         self.__free_end_date = free_end_date
         self.__is_pushed = is_pushed
+
+    @property
+    def ID(self):
+        return self.__ID
 
     @property
     def game_id(self):
@@ -190,7 +195,7 @@ class EpicFreeGamesSQL:
                         '{free_end_date}',
                         0)""")
                     conn.commit()
-                    logger.debug(f"Item({item['id']} : {title}) has been inserted into table.")
+                    logger.debug(f"Item({item['id']}:{title}) has been inserted into table.")
             return True
         except Exception as e:
             logger.exception(e, exc_info=True)
@@ -200,7 +205,8 @@ class EpicFreeGamesSQL:
         """
         根据是否推送的状态Flag来获取Epic商品信息
         :param flag:
-        :return [(id, game_id, title, description, store_url, epic_release_date, offer_type, image_wide, image_tall, image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed), ...]:
+        :return [(id, game_id, title, description, store_url, epic_release_date, offer_type, image_wide, image_tall,
+        image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed), ...]:
         """
         try:
             conn = self.conn()
@@ -215,7 +221,8 @@ class EpicFreeGamesSQL:
     def get_all_item(self) -> list:
         """
         获取所有数据
-        :return [(id, game_id, title, description, store_url, epic_release_date, offer_type, image_wide, image_tall, image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed), ...]:
+        :return [(id, game_id, title, description, store_url, epic_release_date, offer_type, image_wide,
+        image_tall, image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed), ...]:
         """
         try:
             conn = self.conn()
