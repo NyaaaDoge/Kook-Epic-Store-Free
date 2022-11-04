@@ -149,9 +149,9 @@ async def epic(msg: Message, command: str = None, *args):
                         # 同一个服务器
                         else:
                             await msg.reply(f":red_square:服务器新增推送频道失败，一个服务器只能有一个频道进行推送！当前服务器已有频道加入过推送功能！\n"
-                                            "频道名称：**{db_Channel[5]}**\n"
-                                            "频道ID：**{db_Channel[4]}**\n"
-                                            "(chn){db_Channel[4]}(chn)", type=MessageTypes.KMD)
+                                            f"频道名称：**{db_Channel[5]}**\n"
+                                            f"频道ID：**{db_Channel[4]}**\n"
+                                            f"(chn){db_Channel[4]}(chn)", type=MessageTypes.KMD)
                 # 关闭订阅
                 elif args[0] in ['off']:
                     # 根据服务器id删除数据库中的channel
