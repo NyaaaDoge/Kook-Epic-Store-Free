@@ -2,12 +2,13 @@ import json
 import logging
 import aiohttp
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from botutils import sqlite_epic_free, sqlite_kook_channel, epic_store_core
 from khl import Bot, Message, MessageTypes
-from khl.card import CardMessage, Card, Module, Element, Types
+from khl.card import CardMessage, Card, Module, Element
+from botutils.card_storage import freeGameCardMessage, helpInfoCardMessage
 
-BOT_VERSION = 'v0.0.2 20221108'
+BOT_VERSION = 'v0.0.2 20221109'
 
 logger = logging.getLogger("Main")
 
@@ -43,9 +44,9 @@ def msgLogging(msg: Message):
 
 
 # 向botmarket通信
-@bot.task.add_interval(minutes=30)
-async def botmarket():
-    if any(botMarketUUID):
+if any(botMarketUUID):
+    @bot.task.add_interval(minutes=30)
+    async def botmarketOnline():
         botmarket_api = "http://bot.gekj.net/api/v1/online.bot"
         headers = {'uuid': botMarketUUID}
         async with aiohttp.ClientSession() as session:
@@ -79,7 +80,7 @@ async def epic(msg: Message, command: str = None, *args):
         # 需要Bot拥有管理角色权限
         current_user_roles = await current_user.fetch_roles()
 
-        async def exec_mods_Commands():
+        async def exec_mods_commands():
             # 获取频道数据
             current_channel_id = msg.ctx.channel.id
             current_channel = await bot.client.fetch_public_channel(current_channel_id)
@@ -87,24 +88,12 @@ async def epic(msg: Message, command: str = None, *args):
                        'master_id': current_guild.master_id, 'channel_id': current_channel_id,
                        'channel_name': current_channel.name}
 
-            help_str = """用法帮助：
-`.epic free on`     在该频道开启Epic免费游戏推送。注意：一个服务器只能有一个频道能进行推送。
-`.epic free off`    关闭Epic免费游戏推送，注意：该指令在服务器内任何频道都生效。
-`.epic free now`    获取现在正在领取时间的Epic免费游戏资讯。
-`.epic free coming`    获取预告能领取的Epic免费游戏资讯。
-Bot需要拥有 角色管理权限，用于判断用户是否具有权限开关功能；用户开关功能需要拥有 服务器管理 或 频道管理 权限。
-
-> 建议在服务器单独开设一个频道接收Epic免费游戏资讯，将该文字频道的频道的Epic Store Free角色的可见和发送消息权限设置为开启。
-Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
-如果觉得Epic Store Free好用的话，欢迎来[Bot Market页面](https://www.botmarket.cn/)发表评价或[爱发电捐助我](https://afdian.net/a/NyaaaDoge)。
-欢迎加入交流服务器**[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。"""
-
             if command is None:
-                await msg.reply(help_str, type=MessageTypes.KMD)
+                await msg.reply(content=helpInfoCardMessage(), type=MessageTypes.CARD)
 
             elif command in ['free']:
                 if not any(args):
-                    await msg.reply(help_str, type=MessageTypes.KMD)
+                    await msg.reply(content=helpInfoCardMessage(), type=MessageTypes.CARD)
 
                 # 开启订阅
                 elif args[0] in ['on']:
@@ -142,7 +131,7 @@ Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
                                             # 进行推送
                                             await bot.client.send(target=current_channel,
                                                                   type=MessageTypes.CARD,
-                                                                  content=freeGameCard(item))
+                                                                  content=freeGameCardMessage(item))
                                             # 推送完毕
                                             logger.info(
                                                 f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
@@ -183,7 +172,7 @@ Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
                             if start_time < now_time < end_time:
                                 await bot.client.send(target=current_channel,
                                                       type=MessageTypes.CARD,
-                                                      content=freeGameCard(item))
+                                                      content=freeGameCardMessage(item))
                                 # 推送完毕
                                 logger.info(
                                     f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
@@ -203,7 +192,7 @@ Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
                             if now_time < start_time:
                                 await bot.client.send(target=current_channel,
                                                       type=MessageTypes.CARD,
-                                                      content=freeGameCard(item))
+                                                      content=freeGameCardMessage(item))
                                 # 推送完毕
                                 logger.info(
                                     f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
@@ -214,7 +203,7 @@ Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
             # 如果用户没有角色，只允许服务器所有者执行
             if msg.author.id in current_guild.master_id:
                 # 执行指令操作
-                await exec_mods_Commands()
+                await exec_mods_commands()
                 return
 
             # 遍历用户的角色构成
@@ -224,7 +213,7 @@ Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
                         or msg.author.id in current_guild.master_id or msg.author.id in developers:
                     # 如果有一个角色满足条件就只执行一次指令操作
                     try:
-                        await exec_mods_Commands()
+                        await exec_mods_commands()
 
                     except Exception as e:
                         logger.exception(e, exc_info=True)
@@ -239,7 +228,7 @@ Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
 
     except Exception as e:
         logger.exception(e, exc_info=True)
-        await msg.reply(f"Bot没有管理角色权限！故无法进行操作！")
+        await msg.reply(f"出现了一点问题，可能是Bot没有管理角色权限，也有可能是获取内容出错请稍后再试。")
 
 
 # 开发者指令
@@ -389,7 +378,7 @@ async def pushFreeGames(items):
                         if db_end_time > now_time:
                             # 进行推送
                             await bot.client.send(target=target_channel, type=MessageTypes.CARD,
-                                                  content=freeGameCard(item))
+                                                  content=freeGameCardMessage(item))
                             # 推送完毕
                             logger.info(
                                 f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
@@ -422,7 +411,7 @@ async def freeGamesStatus():
     try:
         logger.info(f"Updating bot status...")
         ongoing_free = 0
-        coming_free = 0
+        upcoming_free = 0
         now_time = datetime.now()
         free_items = epicFreeSQL.get_all_item()
         for item in free_items:
@@ -436,65 +425,17 @@ async def freeGamesStatus():
                     ongoing_free += 1
                 # 如果现在不在领取期间，但是在预告之前
                 if now_time < start_time:
-                    coming_free += 1
+                    upcoming_free += 1
 
-        await bot.client.update_listening_music(f"{ongoing_free}个能领取、{coming_free}个预告中的游戏",
+        await bot.client.update_listening_music(f"{ongoing_free}款能领取、{upcoming_free}款预告中的游戏",
                                                 "Steam 阀门社 - Code: nGr9DH")
-        logger.info(f"Successfully update status ({ongoing_free}个能领取、{coming_free}个预告中的游戏).")
+        logger.info(f"Successfully update status ({ongoing_free}款能领取、{upcoming_free}款预告中的游戏).")
 
     except Exception as e:
         logger.exception(e, exc_info=True)
 
     finally:
         logger.info("Task freeGamesStatus done.")
-
-
-# ========================================卡片部分================================================
-
-# 免费游戏卡片 按时间做分类
-def freeGameCard(item_free):
-    db_item = sqlite_epic_free.DatabaseFreeItem(*item_free)
-    card_message = CardMessage()
-
-    now_time = datetime.now()
-    fmt_release_time = datetime.fromisoformat(db_item.epic_release_date[:-1]).strftime("%Y-%m-%d")
-    db_start_time_bj = datetime.fromisoformat(db_item.free_start_date[:-1]) + timedelta(hours=8)
-    db_end_time_bj = datetime.fromisoformat(db_item.free_end_date[:-1]) + timedelta(hours=8)
-
-    card = Card(theme=Types.Theme.INFO)
-    card.append(
-        Module.Section(text=Element.Text(f"**Epic 商店限时免费领取物品！**", type=Types.Text.KMD),
-                       accessory=Element.Image('https://img.kookapp.cn/assets/2022-10/2BwJawa4NY0dz0e8.jpg',
-                                               circle=False, size=Types.Size.SM)))
-    card.append(Module.Divider())
-    card.append(Module.Section(Element.Text(f"**[{db_item.title}]({db_item.store_url})**", type=Types.Text.KMD)))
-    # 如果现在能领取
-    if db_start_time_bj < now_time < db_end_time_bj:
-        card.append(Module.Section(text=Element.Text(f"**`{db_end_time_bj}` 之前**", type=Types.Text.KMD),
-                                   accessory=Element.Button(f"获取", f"{db_item.store_url}",
-                                                            theme=Types.Theme.INFO, click=Types.Click.LINK)))
-        card.append(Module.Context(Element.Text("离免费领取时间**结束**还有：", type=Types.Text.KMD)))
-        card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
-    # 现在不能领取
-    elif now_time < db_start_time_bj:
-        card.append(
-            Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至\n`{db_end_time_bj}`**", type=Types.Text.KMD),
-                           accessory=Element.Button(f"即将推出", f"{db_item.store_url}",
-                                                    theme=Types.Theme.INFO, click=Types.Click.LINK)))
-        card.append(Module.Context(Element.Text("离免费领取时间**开始**还有：", type=Types.Text.KMD)))
-        card.append(Module.Countdown(end=db_start_time_bj, mode=Types.CountdownMode.DAY))
-        card.append(Module.Context(Element.Text("离免费领取时间**结束**还有：", type=Types.Text.KMD)))
-        card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
-
-    card.append(Module.Container(Element.Image(f"{db_item.image_wide}")))
-    card.append(Module.Context(f"登陆Epic商店日期：{fmt_release_time}\n发行商：{db_item.seller}"))
-    card.append(Module.Section(text=Element.Text(f"> {db_item.description}", type=Types.Text.KMD)))
-    card.append(Module.Context(Element.Text('[Bot Market](https://www.botmarket.cn/bots?id=108) | '
-                                            '[交流服务器内有更多资讯](https://kook.top/nGr9DH) | '
-                                            '[爱发电](https://afdian.net/a/NyaaaDoge)', type=Types.Text.KMD)))
-
-    card_message.append(card)
-    return card_message
 
 
 #################################################################################################
