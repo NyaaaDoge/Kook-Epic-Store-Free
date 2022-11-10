@@ -2,7 +2,7 @@ import json
 import logging
 import aiohttp
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from botutils import sqlite_epic_free, sqlite_kook_channel, epic_store_core
 from khl import Bot, Message, MessageTypes
 from khl.card import CardMessage, Card, Module, Element
@@ -120,7 +120,7 @@ async def epic(msg: Message, command: str = None, *args):
                                 logger.info(f"Channel{channel} subscribe successfully")
                                 await msg.reply("服务器新增推送频道成功！同时Epic商店限时免费商品推送功能 **[:green_square:开启]**。",
                                                 type=MessageTypes.KMD)
-                                now_time = datetime.now()
+                                now_time = datetime.now() - timedelta(hours=8)
                                 free_items = epicFreeSQL.get_all_item()
                                 for item in free_items:
                                     # 有截止日期
@@ -160,7 +160,7 @@ async def epic(msg: Message, command: str = None, *args):
 
                 # 获取现在能领取的游戏
                 elif args[0] in ['now']:
-                    now_time = datetime.now()
+                    now_time = datetime.now() - timedelta(hours=8)
                     free_items = epicFreeSQL.get_all_item()
                     for item in free_items:
                         db_item = sqlite_epic_free.DatabaseFreeItem(*item)
@@ -181,7 +181,7 @@ async def epic(msg: Message, command: str = None, *args):
 
                 # 获取预告领取的游戏
                 elif args[0] in ['coming']:
-                    now_time = datetime.now()
+                    now_time = datetime.now() - timedelta(hours=8)
                     free_items = epicFreeSQL.get_all_item()
                     for item in free_items:
                         db_item = sqlite_epic_free.DatabaseFreeItem(*item)
@@ -372,7 +372,7 @@ async def pushFreeGames(items):
                 for item in items:
                     # 按时间进行推送，有截止日期
                     if not item[13] == '':
-                        now_time = datetime.now()
+                        now_time = datetime.now() - timedelta(hours=8)
                         db_end_time = datetime.fromisoformat(item[13][:-1])
                         # 如果还未结束领取，进行推送
                         if db_end_time > now_time:
@@ -412,7 +412,7 @@ async def freeGamesStatus():
         logger.info(f"Updating bot status...")
         ongoing_free = 0
         upcoming_free = 0
-        now_time = datetime.now()
+        now_time = datetime.now() - timedelta(hours=8)
         free_items = epicFreeSQL.get_all_item()
         for item in free_items:
             db_item = sqlite_epic_free.DatabaseFreeItem(*item)

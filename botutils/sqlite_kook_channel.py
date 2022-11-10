@@ -108,7 +108,7 @@ class KookChannelSQL:
                 '{channel['channel_name']}',
                 1)""")
             conn.commit()
-            logger.info(f"Channel({channel['guild_id']}:{channel['guild_name']}) has been inserted into table.")
+            logger.info(f"Channel({channel['channel_id']}:{channel['channel_name']}) has been inserted into table.")
             return True
         except Exception as e:
             logger.exception(e, exc_info=True)

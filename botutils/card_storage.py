@@ -75,6 +75,7 @@ Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
     card.append(Module.Divider())
     card.append(Module.Section('如有任何问题，欢迎加入交流服务器与开发者联系',
                                Element.Button('交流服务器', 'https://kook.top/nGr9DH', Types.Click.LINK)))
+    card.append(Module.Invite("nGr9DH"))
 
     card_message.append(card)
     return card_message
