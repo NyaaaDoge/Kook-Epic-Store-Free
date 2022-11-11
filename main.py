@@ -8,7 +8,7 @@ from khl import Bot, Message, MessageTypes
 from khl.card import CardMessage, Card, Module, Element
 from botutils.card_storage import freeGameCardMessage, helpInfoCardMessage
 
-BOT_VERSION = 'v0.0.2 20221109'
+BOT_VERSION = 'v0.0.3 20221111'
 
 logger = logging.getLogger("Main")
 
@@ -51,7 +51,6 @@ if any(botMarketUUID):
         headers = {'uuid': botMarketUUID}
         async with aiohttp.ClientSession() as session:
             await session.get(botmarket_api, headers=headers)
-
 
 #################################################################################################
 #################################################################################################
@@ -238,12 +237,41 @@ async def admin(msg: Message, command: str = None, *args):
     if msg.author.id in developers:
         try:
             if command is None:
-                await msg.reply("`.admin info` 查看Epic Store Free订阅服务器相关信息\n"
-                                "`.admin here` 查看本频道相关信息\n"
-                                "`.admin leave` {gid} 退出指定服务器", type=MessageTypes.KMD)
+                await msg.reply("[README.md on Github](https://github.com/NyaaaDoge/Kook-Epic-Store-Free)",
+                                type=MessageTypes.KMD)
 
-            # 查看开启推送功能的频道，从数据库中查询
+            elif command in ['update']:
+                await getFreeGames()
+                await msg.reply("执行获取Epic免费商品成功！", type=MessageTypes.KMD)
+
+            elif command in ['push']:
+                logger.info(f"Execute pushFreeGames task...")
+                await pushFreeGames()
+                await msg.reply("执行推送Epic免费商品成功！", type=MessageTypes.KMD)
+
+            elif command in ['delete']:
+                if not any(args):
+                    await msg.reply("用法 `.admin delete {game_id}`", type=MessageTypes.KMD)
+
+                elif len(args) == 1:
+                    target_data = epicFreeSQL.get_item_by_game_id(args[0])
+                    item = sqlite_epic_free.DatabaseFreeItem(*target_data)
+                    await msg.reply(f"获取到数据库中有此数据。数据信息如下：\n"
+                                    f"game_id: {item.game_id}\n"
+                                    f"title: {item.title}\n"
+                                    f"store_url: [商店地址]({item.store_url})\n"
+                                    f"start: {item.free_start_date}\n"
+                                    f"end: {item.free_end_date}\n"
+                                    f"您确定要删除该数据吗？\n"
+                                    f"确定请输入 `.admin delete {args[0]} confirm`", type=MessageTypes.KMD)
+
+                elif any(args[0]) and args[1] == "confirm":
+                    target_data = epicFreeSQL.get_item_by_game_id(args[0])
+                    result = epicFreeSQL.delete_item_by_game_id(args[0])
+                    await msg.reply(f"成功删除此条数据！影响行数：{result}\n({target_data})", type=MessageTypes.KMD)
+
             elif command in ['info']:
+                # 查看开启推送功能的频道，从数据库中查询
                 list_guild = await bot.client.fetch_guild_list()
                 channels = channelSQL.get_all_channel()
                 free_items = epicFreeSQL.get_all_item()
@@ -321,7 +349,7 @@ async def interval_minutes_tasks():
         if any(items):
             # 执行推送任务
             logger.info(f"Execute pushFreeGames task...")
-            await pushFreeGames(items)
+            await pushFreeGames()
         else:
             logger.info(f"No free item to be pushed to the channel")
 
@@ -341,12 +369,22 @@ async def getFreeGames():
         logger.info(f"Getting free items...")
         # 获取免费商品
         free_items = await epic_store_core.getEpicFreeGames()
-        # 将免费商品写入数据库中
+        # 将免费商品写入数据库中，数据会有更新的说法，同时需要更新数据库的数据
         flag_insert = epicFreeSQL.insert_item(free_items)
         if flag_insert:
             logger.debug(f"Insert {len(free_items)} item(s) info into the table successfully.")
         else:
             logger.debug(f"The {len(free_items)} item(s) inserted info the table fail.")
+        # 对于重复game_id的物品，更新数据
+        for free_item in free_items:
+            if not free_item.get('isCodeRedemptionOnly'):
+                current_game_id = free_item['id']
+                title = free_item.get('title', '').replace("'", "''")
+                db_data = epicFreeSQL.get_item_by_game_id(current_game_id)
+                if any(db_data):
+                    # 执行更新操作
+                    epicFreeSQL.update_item_by_game_id(current_game_id, free_item)
+                    logger.info(f"Successfully update item({current_game_id}:{title})")
 
     except Exception as e:
         logger.exception(e, exc_info=True)
@@ -358,12 +396,13 @@ async def getFreeGames():
 # ----------------------------------------推送任务-----------------------------------------------
 
 # 推送数据库中未被推送过的商品信息
-async def pushFreeGames(items):
+async def pushFreeGames():
     try:
+        items = epicFreeSQL.get_item_by_push_flag(0)
         logger.info(f"Pushing free items...")
         # 查询数据库中开启订阅功能的频道id-channel[4] "0"代表关闭，"1"代表开启
         sub_channels = channelSQL.get_channel_by_push_flag_free(1)
-        # 遍历频道，给频道进行推送
+        # 遍历频道，给频道进行推送 TODO 如果服务器多了推送速度是否有点慢，可以用asyncio创建任务但是目前不知道怎么设置速率限制
         for channel in sub_channels:
             channel_id: str = channel[4]
             try:
@@ -441,6 +480,6 @@ async def freeGamesStatus():
 #################################################################################################
 #################################################################################################
 
-
+bot.command.update_prefixes('.', '。')
 # 运行机器人
 bot.run()

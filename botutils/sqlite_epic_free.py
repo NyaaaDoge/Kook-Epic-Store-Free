@@ -140,7 +140,7 @@ class EpicFreeGamesSQL:
                 if game_id is not None:
                     continue
                 # app不存在，插入数据，如果不是仅限激活码激活，插入数据
-                if item.get('isCodeRedemptionOnly') == False:
+                if not item.get('isCodeRedemptionOnly'):
                     title = item.get('title', '').replace("'", "''")
                     description = item.get('description').replace("'", "''")
                     store_url = "https://store.epicgames.com/zh-CN/p/" + item.get('catalogNs').get('mappings')[0].get(
@@ -234,6 +234,17 @@ class EpicFreeGamesSQL:
         except Exception as e:
             logger.exception(e, exc_info=True)
 
+    def get_item_by_game_id(self, game_id):
+        try:
+            conn = self.conn()
+            result = conn.execute(f"SELECT * FROM EpicFreeGames where game_id = '{game_id}'").fetchone()
+            if not result:
+                return ()
+            else:
+                return result
+        except Exception as e:
+            logger.exception(e, exc_info=True)
+
     def update_item_push_flag_by_game_id(self, game_id, flag: int):
         """
         更新商品推送Flag状态
@@ -246,6 +257,65 @@ class EpicFreeGamesSQL:
             conn.execute(f"UPDATE EpicFreeGames SET is_pushed = {flag} WHERE game_id = '{game_id}'")
             conn.commit()
             return True
+        except Exception as e:
+            logger.exception(e, exc_info=True)
+            return False
+
+    def update_item_by_game_id(self, game_id, item):
+        try:
+            title = item.get('title', '').replace("'", "''")
+            description = item.get('description').replace("'", "''")
+            store_url = "https://store.epicgames.com/zh-CN/p/" + item.get('catalogNs').get('mappings')[0].get(
+                'pageSlug', '')
+            # 获取免费领取开始时间
+            promotions = item.get('promotions', None)
+            free_start_date = ""
+            free_end_date = ""
+            # 如果没有promotions返回
+            if promotions is None:
+                pass
+            # 如果有promotions返回
+            else:
+                # 如果promotions中的promotionalOffers有内容，则代表现在时间段可以领取
+                if any(promotions['promotionalOffers']):
+                    free_start_date = promotions['promotionalOffers'][0]['promotionalOffers'][0]['startDate']
+                    free_end_date = promotions['promotionalOffers'][0]['promotionalOffers'][0]['endDate']
+                # 以后能领取
+                elif any(promotions['upcomingPromotionalOffers']):
+                    free_start_date = promotions['upcomingPromotionalOffers'][0]['promotionalOffers'][0][
+                        'startDate']
+                    free_end_date = promotions['upcomingPromotionalOffers'][0]['promotionalOffers'][0][
+                        'endDate']
+
+            conn = self.conn()
+            conn.execute(f"UPDATE EpicFreeGames "
+                         f"SET title = '{title}', description = '{description}', store_url = '{store_url}', "
+                         f"free_start_date = '{free_start_date}', free_end_date = '{free_end_date}' "
+                         f"WHERE game_id = '{game_id}'")
+            conn.commit()
+            logger.debug(f"Item({game_id}:{title}) has been updated successfully.")
+            return True
+        except Exception as e:
+            logger.exception(e, exc_info=True)
+            return False
+
+    def delete_item_by_game_id(self, game_id):
+        """
+        根据game_id删除对应的数据
+        :param game_id:
+        :return:
+        """
+        try:
+            logger.info(f"Deleting item by ({game_id})...")
+            conn = self.conn()
+            result = conn.execute(f"DELETE FROM EpicFreeGames where game_id = '{game_id}'")
+            conn.commit()
+            conn.execute(f"VACUUM")
+            if not result:
+                return False
+            else:
+                logger.info(f"Successfully delete {result.rowcount} item(s) by ({game_id}).")
+                return result.rowcount
         except Exception as e:
             logger.exception(e, exc_info=True)
             return False
