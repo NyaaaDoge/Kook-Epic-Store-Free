@@ -18,13 +18,14 @@
 
 `.admin`开头的指令为开发者指令，使用前需要在config文件中填入开发者的kook id。
 
-| 指令                     | 说明            |
-|------------------------|---------------|
-| `.admin info`          | 查看开启订阅服务的相关信息 |
-| `.admin leave {gid}`   | 退出指定服务器       |
-| `.admin here`          | 查看当前频道的信息     |
-| `.admin status update` | 立刻更新Bot的音乐状态  |
-| `.admin status stop`   | 立刻停止Bot的音乐状态  |
+| 指令                        | 说明                 |
+|---------------------------|--------------------|
+| `.admin info`             | 查看开启订阅服务的相关信息      |
+| `.admin delete {game_id}` | 删除数据库中对应game_id的数据 |
+| `.admin leave {gid}`      | 退出指定服务器            |
+| `.admin here`             | 查看当前频道的信息          |
+| `.admin status update`    | 立刻更新Bot的音乐状态       |
+| `.admin status stop`      | 立刻停止Bot的音乐状态       |
 
 ### 2. 项目说明
 

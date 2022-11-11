@@ -65,10 +65,11 @@ def helpInfoCardMessage():
 `.epic free off`    关闭Epic免费游戏推送，注意：该指令在服务器内任何频道都生效。
 `.epic free now`    获取现在正在领取时间的Epic免费游戏资讯。
 `.epic free coming`    获取预告能领取的Epic免费游戏资讯。
-Bot需要拥有 角色管理权限，用于判断用户是否具有权限开关功能；用户开关功能需要拥有 服务器管理 或 频道管理 权限。
+Bot需要拥有 `角色管理权限`，用于判断用户是否具有权限开关功能；用户使用功能需要拥有 **服务器管理** 或 **频道管理** 权限。
 ----
 关于Bot：
 > 建议在服务器单独开设一个频道接收Epic免费游戏资讯，将该文字频道的频道的Epic Store Free角色的可见和发送消息权限设置为开启。
+**`别忘了打开Bot的权限！别忘了打开Bot的权限！别忘了打开Bot的权限！不然Bot无法发送消息！`**
 Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
 如果觉得Epic Store Free好用的话，欢迎来[Bot Market页面](https://www.botmarket.cn/)发表评价或[爱发电捐助我](https://afdian.net/a/NyaaaDoge)。
 欢迎加入交流服务器**[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。""", type=Types.Text.KMD)))
