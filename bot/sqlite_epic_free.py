@@ -1,5 +1,8 @@
 import logging
 import sqlite3
+
+from bot.bot_utils import BotUtils
+from dataclasses import dataclass
 from pathlib import Path
 
 SQL = Path() / "data" / "epic.db"
@@ -7,88 +10,106 @@ SQL = Path() / "data" / "epic.db"
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
 class DatabaseFreeItem:
+    ID: int
+    game_id: str
+    title: str
+    description: str
+    store_url: str
+    epic_release_date: str
+    offer_type: str
+    image_wide: str
+    image_tall: str
+    image_thumbnail: str
+    seller: str
+    original_price: str
+    discount_price: str
+    discount_setting: str
+    free_start_date: str
+    free_end_date: str
+    is_pushed: int
 
-    def __init__(self, ID, game_id, title, description, store_url, epic_release_date, offer_type, image_wide,
-                 image_tall, image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed):
-        self.__ID = ID
-        self.__game_id = game_id
-        self.__title = title
-        self.__description = description
-        self.__store_url = store_url
-        self.__epic_release_date = epic_release_date
-        self.__offer_type = offer_type
-        self.__image_wide = image_wide
-        self.__image_tall = image_tall
-        self.__image_thumbnail = image_thumbnail
-        self.__seller = seller
-        self.__original_price = original_price
-        self.__free_start_date = free_start_date
-        self.__free_end_date = free_end_date
-        self.__is_pushed = is_pushed
-
-    @property
-    def ID(self):
-        return self.__ID
-
-    @property
-    def game_id(self):
-        return self.__game_id
-
-    @property
-    def title(self):
-        return self.__title
-
-    @property
-    def description(self):
-        return self.__description
-
-    @property
-    def store_url(self):
-        return self.__store_url
-
-    @property
-    def epic_release_date(self):
-        return self.__epic_release_date
-
-    @property
-    def offer_type(self):
-        return self.__offer_type
-
-    @property
-    def image_wide(self):
-        return self.__image_wide
-
-    @property
-    def image_tall(self):
-        return self.__image_tall
-
-    @property
-    def image_thumbnail(self):
-        return self.__image_thumbnail
-
-    @property
-    def seller(self):
-        return self.__seller
-
-    @property
-    def original_price(self):
-        return self.__original_price
-
-    @property
-    def free_start_date(self):
-        return self.__free_start_date
-
-    @property
-    def free_end_date(self):
-        return self.__free_end_date
-
-    @property
-    def is_pushed(self):
-        return self.__is_pushed
-
+    # def __init__(self, ID, game_id, title, description, store_url, epic_release_date, offer_type, image_wide,
+    #              image_tall, image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed):
+    #     self.__ID = ID
+    #     self.__game_id = game_id
+    #     self.__title = title
+    #     self.__description = description
+    #     self.__store_url = store_url
+    #     self.__epic_release_date = epic_release_date
+    #     self.__offer_type = offer_type
+    #     self.__image_wide = image_wide
+    #     self.__image_tall = image_tall
+    #     self.__image_thumbnail = image_thumbnail
+    #     self.__seller = seller
+    #     self.__original_price = original_price
+    #     self.__free_start_date = free_start_date
+    #     self.__free_end_date = free_end_date
+    #     self.__is_pushed = is_pushed
+    #
+    # @property
+    # def ID(self):
+    #     return self.__ID
+    #
+    # @property
+    # def game_id(self):
+    #     return self.__game_id
+    #
+    # @property
+    # def title(self):
+    #     return self.__title
+    #
+    # @property
+    # def description(self):
+    #     return self.__description
+    #
+    # @property
+    # def store_url(self):
+    #     return self.__store_url
+    #
+    # @property
+    # def epic_release_date(self):
+    #     return self.__epic_release_date
+    #
+    # @property
+    # def offer_type(self):
+    #     return self.__offer_type
+    #
+    # @property
+    # def image_wide(self):
+    #     return self.__image_wide
+    #
+    # @property
+    # def image_tall(self):
+    #     return self.__image_tall
+    #
+    # @property
+    # def image_thumbnail(self):
+    #     return self.__image_thumbnail
+    #
+    # @property
+    # def seller(self):
+    #     return self.__seller
+    #
+    # @property
+    # def original_price(self):
+    #     return self.__original_price
+    #
+    # @property
+    # def free_start_date(self):
+    #     return self.__free_start_date
+    #
+    # @property
+    # def free_end_date(self):
+    #     return self.__free_end_date
+    #
+    # @property
+    # def is_pushed(self):
+    #     return self.__is_pushed
+    #
     def __str__(self):
-        return f"{self.__game_id}-{self.title}"
+        return f"{self.game_id}-{self.title}"
 
 
 class EpicFreeGamesSQL:
@@ -121,6 +142,8 @@ class EpicFreeGamesSQL:
     image_thumbnail text,
     seller    text,
     original_price  text,
+    discount_price text,
+    discount_setting text,
     free_start_date text,
     free_end_date   text,
     is_pushed integer default 0
@@ -130,7 +153,7 @@ class EpicFreeGamesSQL:
         except Exception as e:
             logger.error(e)
 
-    def insert_item(self, items: list):
+    def insert_items(self, items: list):
         try:
             conn = self.conn()
             for item in items:
@@ -141,6 +164,15 @@ class EpicFreeGamesSQL:
                     continue
                 # app不存在，插入数据，如果不是仅限激活码激活，插入数据
                 if not item.get('isCodeRedemptionOnly'):
+                    # 这部分代码写地非常烂
+                    free_start_date = ""
+                    free_end_date = ""
+                    # 检查是否是折扣设置为0的商品，在promotions里面判断
+                    bot_util = BotUtils()
+                    # 如果不是可以免费领取的商品，跳过此条数据的插入
+                    if not bot_util.isItemAvailableFree(item):
+                        continue
+
                     title = item.get('title', '').replace("'", "''")
                     description = item.get('description').replace("'", "''")
                     store_url = "https://store.epicgames.com/zh-CN/p/" + item.get('catalogNs').get('mappings')[0].get(
@@ -158,10 +190,10 @@ class EpicFreeGamesSQL:
                         if image.get('type') == 'Thumbnail':
                             image_thumbnail = image.get('url', '')
                     original_price = item.get('price').get('totalPrice').get('fmtPrice').get('originalPrice', '')
+                    discount_price = item.get('price').get('totalPrice').get('fmtPrice').get('discountPrice', '')
                     # 获取免费领取开始时间
                     promotions = item.get('promotions', None)
-                    free_start_date = ""
-                    free_end_date = ""
+                    discount_setting = ""
                     # 如果没有promotions返回
                     if promotions is None:
                         pass
@@ -169,14 +201,20 @@ class EpicFreeGamesSQL:
                     else:
                         # 如果promotions中的promotionalOffers有内容，则代表现在时间段可以领取
                         if any(promotions['promotionalOffers']):
-                            free_start_date = promotions['promotionalOffers'][0]['promotionalOffers'][0]['startDate']
-                            free_end_date = promotions['promotionalOffers'][0]['promotionalOffers'][0]['endDate']
+                            promotional_offers = promotions['promotionalOffers'][0]['promotionalOffers'][0]
+                            free_start_date = promotional_offers['startDate']
+                            free_end_date = promotional_offers['endDate']
+                            discount_setting = promotional_offers.get('discountSetting', '')
+                            if discount_setting.get('discountType') in ['PERCENTAGE']:
+                                discount_setting = discount_setting.get('discountPercentage')
                         # 以后能领取
                         elif any(promotions['upcomingPromotionalOffers']):
-                            free_start_date = promotions['upcomingPromotionalOffers'][0]['promotionalOffers'][0][
-                                'startDate']
-                            free_end_date = promotions['upcomingPromotionalOffers'][0]['promotionalOffers'][0][
-                                'endDate']
+                            upcoming_offers = promotions['upcomingPromotionalOffers'][0]['promotionalOffers'][0]
+                            free_start_date = upcoming_offers['startDate']
+                            free_end_date = upcoming_offers['endDate']
+                            discount_setting = upcoming_offers.get('discountSetting', '')
+                            if discount_setting.get('discountType') in ['PERCENTAGE']:
+                                discount_setting = discount_setting.get('discountPercentage')
 
                     conn.execute(f"""INSERT INTO EpicFreeGames VALUES (
                         NULL,
@@ -191,11 +229,13 @@ class EpicFreeGamesSQL:
                         '{image_thumbnail}',
                         '{item['seller']['name']}',
                         '{original_price}',
+                        '{discount_price}',
+                        '{discount_setting}',
                         '{free_start_date}',
                         '{free_end_date}',
                         0)""")
                     conn.commit()
-                    logger.debug(f"Item({item['id']}:{title}) has been inserted into table.")
+                    logger.info(f"Item({item['id']}:{title}) has been inserted into table.")
             return True
         except Exception as e:
             logger.exception(e, exc_info=True)
@@ -205,8 +245,6 @@ class EpicFreeGamesSQL:
         """
         根据是否推送的状态Flag来获取Epic商品信息
         :param flag:
-        :return [(id, game_id, title, description, store_url, epic_release_date, offer_type, image_wide, image_tall,
-        image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed), ...]:
         """
         try:
             conn = self.conn()
@@ -221,8 +259,6 @@ class EpicFreeGamesSQL:
     def get_all_item(self) -> list:
         """
         获取所有数据
-        :return [(id, game_id, title, description, store_url, epic_release_date, offer_type, image_wide,
-        image_tall, image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed), ...]:
         """
         try:
             conn = self.conn()
@@ -271,6 +307,9 @@ class EpicFreeGamesSQL:
             promotions = item.get('promotions', None)
             free_start_date = ""
             free_end_date = ""
+            discount_setting = ""
+            original_price = item.get('price').get('totalPrice').get('fmtPrice').get('originalPrice', '')
+            discount_price = item.get('price').get('totalPrice').get('fmtPrice').get('discountPrice', '')
             # 如果没有promotions返回
             if promotions is None:
                 pass
@@ -278,19 +317,27 @@ class EpicFreeGamesSQL:
             else:
                 # 如果promotions中的promotionalOffers有内容，则代表现在时间段可以领取
                 if any(promotions['promotionalOffers']):
-                    free_start_date = promotions['promotionalOffers'][0]['promotionalOffers'][0]['startDate']
-                    free_end_date = promotions['promotionalOffers'][0]['promotionalOffers'][0]['endDate']
+                    promotional_offers = promotions['promotionalOffers'][0]['promotionalOffers'][0]
+                    free_start_date = promotional_offers['startDate']
+                    free_end_date = promotional_offers['endDate']
+                    discount_setting = promotional_offers.get('discountSetting', '')
+                    if discount_setting.get('discountType') in ['PERCENTAGE']:
+                        discount_setting = discount_setting.get('discountPercentage')
                 # 以后能领取
                 elif any(promotions['upcomingPromotionalOffers']):
-                    free_start_date = promotions['upcomingPromotionalOffers'][0]['promotionalOffers'][0][
-                        'startDate']
-                    free_end_date = promotions['upcomingPromotionalOffers'][0]['promotionalOffers'][0][
-                        'endDate']
+                    upcoming_offers = promotions['upcomingPromotionalOffers'][0]['promotionalOffers'][0]
+                    free_start_date = upcoming_offers['startDate']
+                    free_end_date = upcoming_offers['endDate']
+                    discount_setting = upcoming_offers.get('discountSetting', '')
+                    if discount_setting.get('discountType') in ['PERCENTAGE']:
+                        discount_setting = discount_setting.get('discountPercentage')
 
             conn = self.conn()
             conn.execute(f"UPDATE EpicFreeGames "
                          f"SET title = '{title}', description = '{description}', store_url = '{store_url}', "
-                         f"free_start_date = '{free_start_date}', free_end_date = '{free_end_date}' "
+                         f"free_start_date = '{free_start_date}', free_end_date = '{free_end_date}',"
+                         f"original_price = '{original_price}', discount_price = '{discount_price}',"
+                         f"discount_setting = '{discount_setting}'"
                          f"WHERE game_id = '{game_id}'")
             conn.commit()
             logger.debug(f"Item({game_id}:{title}) has been updated successfully.")

@@ -1,20 +1,20 @@
 from khl.card import CardMessage, Card, Types, Module, Element
 from datetime import datetime, timedelta
-from botutils import sqlite_epic_free
+from bot import sqlite_epic_free
 
 
 # ========================================卡片部分================================================
 
 
 # 免费游戏卡片 按时间做分类
-def freeGameCardMessage(item_free):
-    db_item = sqlite_epic_free.DatabaseFreeItem(*item_free)
+def freeGameCardMessage(item_free_tuple_raw):
+    item = sqlite_epic_free.DatabaseFreeItem(*item_free_tuple_raw)
     card_message = CardMessage()
 
     now_time = datetime.now()
-    fmt_release_time = datetime.fromisoformat(db_item.epic_release_date[:-1]).strftime("%Y-%m-%d")
-    db_start_time_bj = datetime.fromisoformat(db_item.free_start_date[:-1]) + timedelta(hours=8)
-    db_end_time_bj = datetime.fromisoformat(db_item.free_end_date[:-1]) + timedelta(hours=8)
+    fmt_release_time = datetime.fromisoformat(item.epic_release_date[:-1]).strftime("%Y-%m-%d")
+    db_start_time_bj = datetime.fromisoformat(item.free_start_date[:-1]) + timedelta(hours=8)
+    db_end_time_bj = datetime.fromisoformat(item.free_end_date[:-1]) + timedelta(hours=8)
 
     card = Card(theme=Types.Theme.INFO)
     card.append(
@@ -22,11 +22,11 @@ def freeGameCardMessage(item_free):
                        accessory=Element.Image('https://img.kookapp.cn/assets/2022-10/2BwJawa4NY0dz0e8.jpg',
                                                circle=False, size=Types.Size.SM)))
     card.append(Module.Divider())
-    card.append(Module.Section(Element.Text(f"**[{db_item.title}]({db_item.store_url})**", type=Types.Text.KMD)))
+    card.append(Module.Section(Element.Text(f"**[{item.title}]({item.store_url})**", type=Types.Text.KMD)))
     # 如果现在能领取
     if db_start_time_bj < now_time < db_end_time_bj:
         card.append(Module.Section(text=Element.Text(f"**`{db_end_time_bj}` 之前**", type=Types.Text.KMD),
-                                   accessory=Element.Button(f"获取", f"{db_item.store_url}",
+                                   accessory=Element.Button(f"获取", f"{item.store_url}",
                                                             theme=Types.Theme.INFO, click=Types.Click.LINK)))
         card.append(Module.Context(Element.Text("离免费领取时间**结束**还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
@@ -34,18 +34,18 @@ def freeGameCardMessage(item_free):
     elif now_time < db_start_time_bj:
         card.append(
             Module.Section(text=Element.Text(f"**`{db_start_time_bj}` 至\n`{db_end_time_bj}`**", type=Types.Text.KMD),
-                           accessory=Element.Button(f"即将推出", f"{db_item.store_url}",
+                           accessory=Element.Button(f"即将推出", f"{item.store_url}",
                                                     theme=Types.Theme.INFO, click=Types.Click.LINK)))
         card.append(Module.Context(Element.Text("离免费领取时间**开始**还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_start_time_bj, mode=Types.CountdownMode.DAY))
         card.append(Module.Context(Element.Text("离免费领取时间**结束**还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
 
-    card.append(Module.Container(Element.Image(f"{db_item.image_wide}")))
-    card.append(Module.Context(f"登陆Epic商店日期：{fmt_release_time}\n发行商：{db_item.seller}"))
-    card.append(Module.Section(text=Element.Text(f"> {db_item.description}", type=Types.Text.KMD)))
+    card.append(Module.Container(Element.Image(f"{item.image_wide}", size=Types.Size.SM)))
+    card.append(Module.Context(f"登陆Epic商店日期：{fmt_release_time}\n发行商：{item.seller}"))
+    card.append(Module.Section(text=Element.Text(f"> {item.description}", type=Types.Text.KMD)))
     card.append(Module.Context(Element.Text('[Bot Market](https://www.botmarket.cn/bots?id=108) | '
-                                            '[交流服务器内有更多资讯](https://kook.top/nGr9DH) | '
+                                            '[加入交流服务器获取更多资讯](https://kook.top/nGr9DH) | '
                                             '[爱发电](https://afdian.net/a/NyaaaDoge)', type=Types.Text.KMD)))
 
     card_message.append(card)
@@ -53,11 +53,12 @@ def freeGameCardMessage(item_free):
 
 
 # 帮助信息卡片
-def helpInfoCardMessage():
+def helpInfoCardMessage(BOT_VERSION: str = 'v???'):
     card_message = CardMessage()
     card = Card(theme=Types.Theme.INFO)
-    card.append(Module.Header('Epic Store Free Bot 使用说明'))
-    card.append(Module.Context(Element.Text(f"[在Github上查看使用文档](https://github.com/NyaaaDoge/Kook-Epic-Store-Free)",
+    card.append(Module.Header(f'Epic Store Free Bot 使用说明'))
+    card.append(Module.Context(Element.Text(f"[在Github上查看使用文档](https://github.com/NyaaaDoge/Kook-Epic-Store-Free)"
+                                            f" {BOT_VERSION}",
                                             type=Types.Text.KMD)))
     card.append(Module.Divider())
     card.append(Module.Section(Element.Text("""指令说明：
