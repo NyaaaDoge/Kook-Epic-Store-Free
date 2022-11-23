@@ -3,12 +3,14 @@ import logging
 import aiohttp
 
 from datetime import datetime, timedelta
-from botutils import sqlite_epic_free, sqlite_kook_channel, epic_store_core
+from bot import sqlite_epic_free, sqlite_kook_channel
 from khl import Bot, Message, MessageTypes
 from khl.card import CardMessage, Card, Module, Element
-from botutils.card_storage import freeGameCardMessage, helpInfoCardMessage
 
-BOT_VERSION = 'v0.0.3 20221111'
+from bot.bot_tasks import getFreeGames, pushFreeGames, freeGamesStatus
+from bot.card_storage import freeGameCardMessage, helpInfoCardMessage
+
+BOT_VERSION = 'v0.1.0 20221123'
 
 logger = logging.getLogger("Main")
 
@@ -52,6 +54,7 @@ if any(botMarketUUID):
         async with aiohttp.ClientSession() as session:
             await session.get(botmarket_api, headers=headers)
 
+
 #################################################################################################
 #################################################################################################
 
@@ -88,19 +91,20 @@ async def epic(msg: Message, command: str = None, *args):
                        'channel_name': current_channel.name}
 
             if command is None:
-                await msg.reply(content=helpInfoCardMessage(), type=MessageTypes.CARD)
+                await msg.reply(content=helpInfoCardMessage(BOT_VERSION), type=MessageTypes.CARD)
 
             elif command in ['free']:
                 if not any(args):
-                    await msg.reply(content=helpInfoCardMessage(), type=MessageTypes.CARD)
+                    await msg.reply(content=helpInfoCardMessage(BOT_VERSION), type=MessageTypes.CARD)
 
                 # 开启订阅
                 elif args[0] in ['on']:
-                    db_Channel = channelSQL.get_channel_by_channel_id(current_channel_id)
+                    query_channel = channelSQL.get_channel_by_channel_id(current_channel_id)
                     # 如果频道已经在数据库中不执行插入，执行修改推送flag_push_free
-                    if any(db_Channel):
+                    if any(query_channel):
+                        db_channel = sqlite_kook_channel.DatabaseKookChannel(*query_channel)
                         # 没开启推送，修改flag至开启
-                        if db_Channel[6] == 0:
+                        if db_channel.flag_push_free == 0:
                             channelSQL.update_channel_push_flag_free_by_channel_id(current_channel_id, 1)
                             await msg.reply("订阅Epic商店限时免费商品推送功能 **[:green_square:开启]** 成功",
                                             type=MessageTypes.KMD)
@@ -110,9 +114,9 @@ async def epic(msg: Message, command: str = None, *args):
                     # 频道不在数据库中，执行插入操作
                     else:
                         # 验证是否为同一个服务器
-                        db_Channel = channelSQL.get_channel_by_guild_id(current_guild.id)
+                        query_channel = channelSQL.get_channel_by_guild_id(current_guild.id)
                         # 如果不是同一个服务器
-                        if not any(db_Channel):
+                        if not any(query_channel):
                             # 开启订阅功能，同时推送限时领取商品
                             insert_flag = channelSQL.insert_channel_free_default(channel)
                             if insert_flag:
@@ -122,9 +126,10 @@ async def epic(msg: Message, command: str = None, *args):
                                 now_time = datetime.now() - timedelta(hours=8)
                                 free_items = epicFreeSQL.get_all_item()
                                 for item in free_items:
-                                    # 有截止日期
-                                    if not item[13] == '':
-                                        db_end_time = datetime.fromisoformat(item[13][:-1])
+                                    # 有截止日期且
+                                    db_item = sqlite_epic_free.DatabaseFreeItem(*item)
+                                    if not db_item.free_end_date == '':
+                                        db_end_time = datetime.fromisoformat(db_item.free_end_date[:-1])
                                         # 如果还未结束领取，先进行推送
                                         if db_end_time > now_time:
                                             # 进行推送
@@ -141,10 +146,11 @@ async def epic(msg: Message, command: str = None, *args):
                                                 type=MessageTypes.KMD)
                         # 同一个服务器
                         else:
+                            db_channel = sqlite_kook_channel.DatabaseKookChannel(*query_channel)
                             await msg.reply(f":red_square:服务器新增推送频道失败，一个服务器只能有一个频道进行推送！当前服务器已有频道加入过推送功能！\n"
-                                            f"频道名称：**{db_Channel[5]}**\n"
-                                            f"频道ID：**{db_Channel[4]}**\n"
-                                            f"(chn){db_Channel[4]}(chn)", type=MessageTypes.KMD)
+                                            f"频道名称：**{db_channel.channel_name}**\n"
+                                            f"频道ID：**{db_channel.channel_id}**\n"
+                                            f"(chn){db_channel.channel_id}(chn)", type=MessageTypes.KMD)
 
                 # 关闭订阅
                 elif args[0] in ['off']:
@@ -174,7 +180,7 @@ async def epic(msg: Message, command: str = None, *args):
                                                       content=freeGameCardMessage(item))
                                 # 推送完毕
                                 logger.info(
-                                    f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
+                                    f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
                                     f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
                                     f"C_id-{current_channel.id})")
 
@@ -194,7 +200,7 @@ async def epic(msg: Message, command: str = None, *args):
                                                       content=freeGameCardMessage(item))
                                 # 推送完毕
                                 logger.info(
-                                    f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
+                                    f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
                                     f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
                                     f"C_id-{current_channel.id})")
 
@@ -246,7 +252,7 @@ async def admin(msg: Message, command: str = None, *args):
 
             elif command in ['push']:
                 logger.info(f"Execute pushFreeGames task...")
-                await pushFreeGames()
+                await pushFreeGames(bot)
                 await msg.reply("执行推送Epic免费商品成功！", type=MessageTypes.KMD)
 
             elif command in ['delete']:
@@ -321,7 +327,7 @@ async def admin(msg: Message, command: str = None, *args):
                                     "`.admin status stop` 停止目前状态", type=MessageTypes.KMD)
 
                 elif args[0] in ['update']:
-                    await freeGamesStatus()
+                    await freeGamesStatus(bot)
                     await msg.reply("Bot更新状态成功！", type=MessageTypes.KMD)
 
                 elif args[0] in ['stop']:
@@ -349,137 +355,23 @@ async def interval_minutes_tasks():
         if any(items):
             # 执行推送任务
             logger.info(f"Execute pushFreeGames task...")
-            await pushFreeGames()
+            await pushFreeGames(bot)
         else:
-            logger.info(f"No free item to be pushed to the channel")
+            logger.info(f"No free item to be pushed to the channel.")
 
         # 更新Bot状态
         logger.info(f"Execute freeGamesStatus task...")
-        await freeGamesStatus()
+        await freeGamesStatus(bot)
 
     except Exception as e:
         logger.exception(e, exc_info=True)
-
-
-# ----------------------------------------获取任务-----------------------------------------------
-
-# 获取Epic免费商品，写入数据库中
-async def getFreeGames():
-    try:
-        logger.info(f"Getting free items...")
-        # 获取免费商品
-        free_items = await epic_store_core.getEpicFreeGames()
-        # 将免费商品写入数据库中，数据会有更新的说法，同时需要更新数据库的数据
-        flag_insert = epicFreeSQL.insert_item(free_items)
-        if flag_insert:
-            logger.debug(f"Insert {len(free_items)} item(s) info into the table successfully.")
-        else:
-            logger.debug(f"The {len(free_items)} item(s) inserted info the table fail.")
-        # 对于重复game_id的物品，更新数据
-        for free_item in free_items:
-            if not free_item.get('isCodeRedemptionOnly'):
-                current_game_id = free_item['id']
-                title = free_item.get('title', '').replace("'", "''")
-                db_data = epicFreeSQL.get_item_by_game_id(current_game_id)
-                if any(db_data):
-                    # 执行更新操作
-                    epicFreeSQL.update_item_by_game_id(current_game_id, free_item)
-                    logger.info(f"Successfully update item({current_game_id}:{title})")
-
-    except Exception as e:
-        logger.exception(e, exc_info=True)
-
-    finally:
-        logger.info("Task getFreeGames done.")
-
-
-# ----------------------------------------推送任务-----------------------------------------------
-
-# 推送数据库中未被推送过的商品信息
-async def pushFreeGames():
-    try:
-        items = epicFreeSQL.get_item_by_push_flag(0)
-        logger.info(f"Pushing free items...")
-        # 查询数据库中开启订阅功能的频道id-channel[4] "0"代表关闭，"1"代表开启
-        sub_channels = channelSQL.get_channel_by_push_flag_free(1)
-        # 遍历频道，给频道进行推送 TODO 如果服务器多了推送速度是否有点慢，可以用asyncio创建任务但是目前不知道怎么设置速率限制
-        for channel in sub_channels:
-            channel_id: str = channel[4]
-            try:
-                # 获取频道
-                target_channel = await bot.client.fetch_public_channel(channel_id=channel_id)
-                for item in items:
-                    # 按时间进行推送，有截止日期
-                    if not item[13] == '':
-                        now_time = datetime.now() - timedelta(hours=8)
-                        db_end_time = datetime.fromisoformat(item[13][:-1])
-                        # 如果还未结束领取，进行推送
-                        if db_end_time > now_time:
-                            # 进行推送
-                            await bot.client.send(target=target_channel, type=MessageTypes.CARD,
-                                                  content=freeGameCardMessage(item))
-                            # 推送完毕
-                            logger.info(
-                                f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
-                                f"(G_id-{target_channel.guild_id}, C_name-{target_channel.name}, "
-                                f"C_id-{target_channel.id})")
-
-            except Exception as e:
-                logger.exception(f"Channel{channel}: {e}")
-
-        # 推送完毕需要更改数据库中flag信息
-        for item in items:
-            flag_push = epicFreeSQL.update_item_push_flag_by_game_id(item[1], 1)
-            if flag_push:
-                logger.info(
-                    f"Item({item[1]}:{item[2]}) has been pushed to all channels and the push-flag updated to 1.")
-            else:
-                logger.info(f"Item({item[1]}) push flag update failed.")
-
-    except Exception as e:
-        logger.exception(e, exc_info=True)
-
-    finally:
-        logger.info("Task pushFreeGames done.")
-
-
-# ----------------------------------------更新状态任务---------------------------------------------
-
-# 更新Bot听音乐的状态
-async def freeGamesStatus():
-    try:
-        logger.info(f"Updating bot status...")
-        ongoing_free = 0
-        upcoming_free = 0
-        now_time = datetime.now() - timedelta(hours=8)
-        free_items = epicFreeSQL.get_all_item()
-        for item in free_items:
-            db_item = sqlite_epic_free.DatabaseFreeItem(*item)
-            # 有截止日期
-            if not db_item.free_end_date == '':
-                start_time = datetime.fromisoformat(db_item.free_start_date[:-1])
-                end_time = datetime.fromisoformat(db_item.free_end_date[:-1])
-                # 如果现在在领取期间中，给正在领取+1
-                if start_time < now_time < end_time:
-                    ongoing_free += 1
-                # 如果现在不在领取期间，但是在预告之前
-                if now_time < start_time:
-                    upcoming_free += 1
-
-        await bot.client.update_listening_music(f"{ongoing_free}款能领取、{upcoming_free}款预告中的游戏",
-                                                "Steam 阀门社 - Code: nGr9DH")
-        logger.info(f"Successfully update status ({ongoing_free}款能领取、{upcoming_free}款预告中的游戏).")
-
-    except Exception as e:
-        logger.exception(e, exc_info=True)
-
-    finally:
-        logger.info("Task freeGamesStatus done.")
 
 
 #################################################################################################
 #################################################################################################
 
 bot.command.update_prefixes('.', '。')
-# 运行机器人
-bot.run()
+
+if __name__ == "__main__":
+    # 运行机器人
+    bot.run()
