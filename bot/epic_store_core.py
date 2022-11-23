@@ -3,13 +3,15 @@ import aiohttp
 
 logger = logging.getLogger(__name__)
 
-EPIC_FREE_GAMES_URL = "https://store-site-backend-static-ipv4.ak.epicgames.com/freeGamesPromotions?locale=zh-CN&country=CN&allowCountries=CN"
+EPIC_FREE_GAMES_URL = "https://store-site-backend-static-ipv4.ak.epicgames.com/" \
+                      "freeGamesPromotions?locale=zh-CN&country=CN&allowCountries=CN"
 
 
 async def getEpicFreeGames() -> list:
     headers = {
         "Referer": "https://www.epicgames.com/store/zh-CN/",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/107.0.0.0 Safari/537.36"
     }
     try:
         logger.info(f"Getting epic store free games from API...")

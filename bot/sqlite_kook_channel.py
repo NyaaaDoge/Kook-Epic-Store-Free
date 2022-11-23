@@ -1,5 +1,7 @@
 import logging
 import sqlite3
+
+from dataclasses import dataclass
 from pathlib import Path
 
 SQL = Path() / "data" / "epic.db"
@@ -8,42 +10,49 @@ logger = logging.getLogger(__name__)
 
 
 # KOOK频道
+@dataclass(frozen=True)
 class DatabaseKookChannel:
-
-    def __init__(self, ID, guild_id, guild_name, master_id, channel_id, channel_name, flag_push_free):
-        self.__guild_id = guild_id
-        self.__guild_name = guild_name
-        self.__master_id = master_id
-        self.__channel_id = channel_id
-        self.__channel_name = channel_name
-        self.__flag_push_free = flag_push_free
-
-    @property
-    def guild_id(self) -> str:
-        return self.__guild_id
-
-    @property
-    def guild_name(self) -> str:
-        return self.__guild_name
-
-    @property
-    def master_id(self) -> str:
-        return self.__master_id
-
-    @property
-    def channel_id(self) -> str:
-        return self.__channel_id
-
-    @property
-    def channel_name(self) -> str:
-        return self.__channel_name
-
-    @property
-    def flag_push_free(self) -> str:
-        return self.__flag_push_free
-
-    def __str__(self):
-        return f"{self.__channel_id}-{self.__channel_name}"
+    ID: int
+    guild_id: str
+    guild_name: str
+    master_id: str
+    channel_id: str
+    channel_name: str
+    flag_push_free: int
+    # def __init__(self, ID, guild_id, guild_name, master_id, channel_id, channel_name, flag_push_free):
+    #     self.__guild_id = guild_id
+    #     self.__guild_name = guild_name
+    #     self.__master_id = master_id
+    #     self.__channel_id = channel_id
+    #     self.__channel_name = channel_name
+    #     self.__flag_push_free = flag_push_free
+    #
+    # @property
+    # def guild_id(self) -> str:
+    #     return self.__guild_id
+    #
+    # @property
+    # def guild_name(self) -> str:
+    #     return self.__guild_name
+    #
+    # @property
+    # def master_id(self) -> str:
+    #     return self.__master_id
+    #
+    # @property
+    # def channel_id(self) -> str:
+    #     return self.__channel_id
+    #
+    # @property
+    # def channel_name(self) -> str:
+    #     return self.__channel_name
+    #
+    # @property
+    # def flag_push_free(self) -> str:
+    #     return self.__flag_push_free
+    #
+    # def __str__(self):
+    #     return f"{self.__channel_id}-{self.__channel_name}"
 
 
 class KookChannelSQL:
