@@ -1,4 +1,4 @@
-class BotUtils:
+class BotUtils(object):
     @staticmethod
     def isItemAvailableFree(item_json_raw: dict):
         """
@@ -36,7 +36,7 @@ class BotUtils:
                                 return item_free_flag
 
             # 将来的折扣信息
-            elif any(upcoming_promotional_offers):
+            if any(upcoming_promotional_offers):
                 for offers_info in upcoming_promotional_offers:
                     promotions_infos = offers_info.get('promotionalOffers')
                     # 遍历详细的折扣信息

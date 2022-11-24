@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class DatabaseFreeItem:
+class DatabaseFreeItem(object):
     ID: int
     game_id: str
     title: str
@@ -30,89 +30,11 @@ class DatabaseFreeItem:
     free_end_date: str
     is_pushed: int
 
-    # def __init__(self, ID, game_id, title, description, store_url, epic_release_date, offer_type, image_wide,
-    #              image_tall, image_thumbnail, seller, original_price, free_start_date, free_end_date, is_pushed):
-    #     self.__ID = ID
-    #     self.__game_id = game_id
-    #     self.__title = title
-    #     self.__description = description
-    #     self.__store_url = store_url
-    #     self.__epic_release_date = epic_release_date
-    #     self.__offer_type = offer_type
-    #     self.__image_wide = image_wide
-    #     self.__image_tall = image_tall
-    #     self.__image_thumbnail = image_thumbnail
-    #     self.__seller = seller
-    #     self.__original_price = original_price
-    #     self.__free_start_date = free_start_date
-    #     self.__free_end_date = free_end_date
-    #     self.__is_pushed = is_pushed
-    #
-    # @property
-    # def ID(self):
-    #     return self.__ID
-    #
-    # @property
-    # def game_id(self):
-    #     return self.__game_id
-    #
-    # @property
-    # def title(self):
-    #     return self.__title
-    #
-    # @property
-    # def description(self):
-    #     return self.__description
-    #
-    # @property
-    # def store_url(self):
-    #     return self.__store_url
-    #
-    # @property
-    # def epic_release_date(self):
-    #     return self.__epic_release_date
-    #
-    # @property
-    # def offer_type(self):
-    #     return self.__offer_type
-    #
-    # @property
-    # def image_wide(self):
-    #     return self.__image_wide
-    #
-    # @property
-    # def image_tall(self):
-    #     return self.__image_tall
-    #
-    # @property
-    # def image_thumbnail(self):
-    #     return self.__image_thumbnail
-    #
-    # @property
-    # def seller(self):
-    #     return self.__seller
-    #
-    # @property
-    # def original_price(self):
-    #     return self.__original_price
-    #
-    # @property
-    # def free_start_date(self):
-    #     return self.__free_start_date
-    #
-    # @property
-    # def free_end_date(self):
-    #     return self.__free_end_date
-    #
-    # @property
-    # def is_pushed(self):
-    #     return self.__is_pushed
-    #
     def __str__(self):
         return f"{self.game_id}-{self.title}"
 
 
-class EpicFreeGamesSQL:
+class EpicFreeGamesSQL(object):
 
     def __init__(self):
         if not SQL.exists():

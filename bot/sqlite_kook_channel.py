@@ -9,9 +9,8 @@ SQL = Path() / "data" / "epic.db"
 logger = logging.getLogger(__name__)
 
 
-# KOOK频道
 @dataclass(frozen=True)
-class DatabaseKookChannel:
+class DatabaseKookChannel(object):
     ID: int
     guild_id: str
     guild_name: str
@@ -19,43 +18,9 @@ class DatabaseKookChannel:
     channel_id: str
     channel_name: str
     flag_push_free: int
-    # def __init__(self, ID, guild_id, guild_name, master_id, channel_id, channel_name, flag_push_free):
-    #     self.__guild_id = guild_id
-    #     self.__guild_name = guild_name
-    #     self.__master_id = master_id
-    #     self.__channel_id = channel_id
-    #     self.__channel_name = channel_name
-    #     self.__flag_push_free = flag_push_free
-    #
-    # @property
-    # def guild_id(self) -> str:
-    #     return self.__guild_id
-    #
-    # @property
-    # def guild_name(self) -> str:
-    #     return self.__guild_name
-    #
-    # @property
-    # def master_id(self) -> str:
-    #     return self.__master_id
-    #
-    # @property
-    # def channel_id(self) -> str:
-    #     return self.__channel_id
-    #
-    # @property
-    # def channel_name(self) -> str:
-    #     return self.__channel_name
-    #
-    # @property
-    # def flag_push_free(self) -> str:
-    #     return self.__flag_push_free
-    #
-    # def __str__(self):
-    #     return f"{self.__channel_id}-{self.__channel_name}"
 
 
-class KookChannelSQL:
+class KookChannelSQL(object):
 
     def __init__(self):
         if not SQL.exists():
@@ -84,15 +49,6 @@ class KookChannelSQL:
             pass
         except Exception as e:
             logger.exception(e, exc_info=True)
-
-    def update_sqlite(self):
-        try:
-            conn = self.conn()
-            result = conn.execute(f"")
-            return result
-        except Exception as e:
-            logger.exception(e, exc_info=True)
-            return e
 
     def insert_channel_free_default(self, channel):
         """
