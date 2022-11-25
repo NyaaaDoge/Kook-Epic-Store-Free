@@ -1,15 +1,15 @@
 class BotUtils(object):
     @staticmethod
-    def isItemAvailableFree(item_json_raw: dict):
+    def getItemFreeStatus(item_json_raw: dict) -> dict:
         """
-        检查传入是item是否为免费商品，跳过仅限激活码的商品
+        传入item_json_raw商品，如果是免费商品则返回对应字典
         :param item_json_raw:
-        :return:
+        :return free_info = {'is_free': False, ...}:
         """
-        item_free_flag = False
+        free_info = {'is_free': False}
         # 如果只可以用激活码激活就直接返回False
         if item_json_raw.get('isCodeRedemptionOnly'):
-            return item_free_flag
+            return free_info
 
         promotions = item_json_raw.get('promotions')
         prices = item_json_raw.get('price')
@@ -32,8 +32,10 @@ class BotUtils(object):
                                 continue
                             else:
                                 # 折扣有为0
-                                item_free_flag = True
-                                return item_free_flag
+                                free_info['startDate'] = promotions_info.get('startDate')
+                                free_info['endDate'] = promotions_info.get('endDate')
+                                free_info['is_free'] = True
+                                return free_info
 
             # 将来的折扣信息
             if any(upcoming_promotional_offers):
@@ -49,15 +51,18 @@ class BotUtils(object):
                                 continue
                             else:
                                 # 折扣有为0
-                                item_free_flag = True
-                                return item_free_flag
+                                free_info['startDate'] = promotions_info.get('startDate')
+                                free_info['endDate'] = promotions_info.get('endDate')
+                                free_info['is_free'] = True
+                                return free_info
 
         # 检查当前价格是否为0
         if prices is not None and any(prices):
             total_price = prices.get('totalPrice')
             fmt_price = total_price.get('fmtPrice')
             if fmt_price.get('discountPrice') == '0':
-                item_free_flag = True
-                return item_free_flag
+                free_info['is_free'] = True
+                free_info['discountPrice'] = '0'
+                return free_info
 
-        return item_free_flag
+        return free_info
