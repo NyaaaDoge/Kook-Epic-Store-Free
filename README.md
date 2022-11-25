@@ -37,4 +37,5 @@
 ### 3. 其他
 
 bot每十分钟更新一次音乐状态（n个能领取、m个预告中的游戏）。 本bot主要用于Kook服务器中推送相关资讯 [Steam阀门社](https://kook.top/nGr9DH)，欢迎加入Kook服务器，获取更多游戏资讯。
-Bot现已开放邀请，如果觉得好用的话，欢迎来[Bot Market页面](https://www.botmarket.cn/bots?id=108)发表意见
+Bot现已开放邀请，如果觉得好用的话，欢迎来[Bot Market页面](https://www.botmarket.cn/bots?id=108)发表意见。也可以来我的[爱发电页面](https://afdian.net/a/NyaaaDoge)捐助我
+.

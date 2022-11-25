@@ -67,7 +67,7 @@ async def pushFreeGames(bot: Bot):
                     # 按时间进行推送，有截止日期 同时需要折扣设置为0
                     if not db_item.free_end_date == '':
                         now_time = datetime.now() - timedelta(hours=8)
-                        db_end_time = datetime.fromisoformat(item[15][:-1])
+                        db_end_time = datetime.fromisoformat(db_item.free_end_date[:-1])
                         # 如果还未结束领取，进行推送
                         if db_end_time > now_time:
                             # 进行推送

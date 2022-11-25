@@ -10,7 +10,7 @@ from khl.card import CardMessage, Card, Module, Element
 from bot.bot_tasks import getFreeGames, pushFreeGames, freeGamesStatus
 from bot.card_storage import freeGameCardMessage, helpInfoCardMessage
 
-BOT_VERSION = 'v0.1.0 20221123'
+BOT_VERSION = 'v0.1.1 20221125'
 
 logger = logging.getLogger("Main")
 
