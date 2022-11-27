@@ -50,7 +50,7 @@ class KookChannelSQL(object):
         except Exception as e:
             logger.exception(e, exc_info=True)
 
-    def insert_channel_free_default(self, channel):
+    def insert_channel_free_default(self, channel: dict):
         """
         插入频道，默认开启FREE推送服务
         :param channel:
@@ -63,15 +63,13 @@ class KookChannelSQL(object):
             # channel已存在
             if dbChannel is not None:
                 return False
-            # channel不存在，插入数据
-            conn.execute(f"""INSERT INTO KookChannel VALUES (
-                NULL,
-                '{channel['guild_id']}',
-                '{channel['guild_name']}',
-                '{channel['master_id']}',
-                '{channel['channel_id']}',
-                '{channel['channel_name']}',
-                1)""")
+            insert_str = (f"{channel['guild_id']}",
+                          f"{channel['guild_name']}",
+                          f"{channel['master_id']}",
+                          f"{channel['channel_id']}",
+                          f"{channel['channel_name']}",)
+            # channel不存在，插入数据。需要防止潜在的可能的SQL注入攻击
+            conn.execute(f"INSERT INTO KookChannel VALUES (NULL, ?, ?, ?, ?, ?, 1)", insert_str)
             conn.commit()
             logger.info(f"Channel({channel['channel_id']}:{channel['channel_name']}) has been inserted into table.")
             return True

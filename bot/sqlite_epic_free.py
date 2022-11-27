@@ -113,23 +113,22 @@ class EpicFreeGamesSQL(object):
                     original_price = item.get('price').get('totalPrice').get('fmtPrice').get('originalPrice', '')
                     discount_price = item.get('price').get('totalPrice').get('fmtPrice').get('discountPrice', '')
 
-                    conn.execute(f"""INSERT INTO EpicFreeGames VALUES (
-                        NULL,
-                        '{item['id']}',
-                        '{title}',
-                        '{description}',
-                        '{store_url}',
-                        '{epic_release_date}',
-                        '{item['offerType']}',
-                        '{image_wide}',
-                        '{image_tall}',
-                        '{image_thumbnail}',
-                        '{item['seller']['name']}',
-                        '{original_price}',
-                        '{discount_price}',
-                        '{free_start_date}',
-                        '{free_end_date}',
-                        0)""")
+                    insert_str = (f"{item['id']}",
+                                  f"{title}",
+                                  f"{description}",
+                                  f"{store_url}",
+                                  f"{epic_release_date}",
+                                  f"{item['offerType']}",
+                                  f"{image_wide}",
+                                  f"{image_tall}",
+                                  f"{image_thumbnail}",
+                                  f"{item['seller']['name']}",
+                                  f"{original_price}",
+                                  f"{discount_price}",
+                                  f"{free_start_date}",
+                                  f"{free_end_date}")
+
+                    conn.execute(f"INSERT INTO EpicFreeGames VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)", insert_str)
                     conn.commit()
                     logger.info(f"Item({item['id']}:{title}) has been inserted into table.")
             return True
@@ -211,12 +210,16 @@ class EpicFreeGamesSQL(object):
             else:
                 return
 
+            insert_str = (title, description, store_url,
+                          free_start_date, free_end_date,
+                          original_price, discount_price, game_id)
+
             conn = self.conn()
             conn.execute(f"UPDATE EpicFreeGames "
-                         f"SET title = '{title}', description = '{description}', store_url = '{store_url}', "
-                         f"free_start_date = '{free_start_date}', free_end_date = '{free_end_date}',"
-                         f"original_price = '{original_price}', discount_price = '{discount_price}'"
-                         f"WHERE game_id = '{game_id}'")
+                         f"SET title = ?, description = ?, store_url = ?, "
+                         f"free_start_date = ?, free_end_date = ?,"
+                         f"original_price = ?, discount_price = ?"
+                         f"WHERE game_id = ?", insert_str)
             conn.commit()
             logger.debug(f"Item({game_id}-{title}) has been updated successfully.")
             return True
