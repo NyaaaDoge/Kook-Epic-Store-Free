@@ -4,7 +4,7 @@ from khl import Message
 
 class BotUtils(object):
     @staticmethod
-    def getItemFreeStatus(item_json_raw: dict) -> dict:
+    def get_item_free_status(item_json_raw: dict) -> dict:
         """
         传入item_json_raw商品，如果是免费商品则返回对应字典
         :param item_json_raw:
@@ -72,7 +72,7 @@ class BotUtils(object):
         return free_info
 
     @staticmethod
-    def msgLogging(logger: Logger, msg: Message):
+    def logging_msg(logger: Logger, msg: Message):
         logger.info(
             f"Message(G_id:{msg.ctx.guild.id} - "
             f"C_id:{msg.ctx.channel.id} - "

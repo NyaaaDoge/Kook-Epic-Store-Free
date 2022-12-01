@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 # 获取Epic免费商品，写入数据库中
-async def getFreeGames():
+async def get_free_games():
     try:
         logger.info(f"Getting free items...")
         # 获取免费商品
-        free_items = await epic_store_core.getEpicFreeGames()
+        free_items = await epic_store_core.get_epic_free_games()
         # 将免费商品写入数据库中，数据会有更新的说法，同时需要更新数据库的数据
         epicFreeSQL = sqlite_epic_free.EpicFreeGamesSQL()
         flag_insert = epicFreeSQL.insert_items(free_items)
@@ -41,14 +41,14 @@ async def getFreeGames():
         logger.exception(e, exc_info=True)
 
     finally:
-        logger.info("Task getFreeGames done.")
+        logger.info("Task get_free_games done.")
 
 
 # ----------------------------------------推送任务-----------------------------------------------
 
 
 # 推送数据库中未被推送过的商品信息
-async def pushFreeGames(bot: Bot):
+async def push_free_items(bot: Bot):
     try:
         logger.info(f"Pushing free items...")
         # 查询数据库中开启订阅功能的频道id-channel[4] "0"代表关闭，"1"代表开启
@@ -95,14 +95,14 @@ async def pushFreeGames(bot: Bot):
         logger.exception(e, exc_info=True)
 
     finally:
-        logger.info("Task pushFreeGames done.")
+        logger.info("Task push_free_items done.")
 
 
 # ----------------------------------------更新状态任务---------------------------------------------
 
 
 # 更新Bot听音乐的状态
-async def freeGamesStatus(bot: Bot):
+async def update_music_status(bot: Bot):
     try:
         logger.info(f"Updating bot status...")
         ongoing_free = 0
@@ -131,4 +131,4 @@ async def freeGamesStatus(bot: Bot):
         logger.exception(e, exc_info=True)
 
     finally:
-        logger.info("Task freeGamesStatus done.")
+        logger.info("Task update_music_status done.")

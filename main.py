@@ -5,7 +5,7 @@ import aiohttp
 from bot import sqlite_epic_free
 from khl import Bot
 from bot.bot_commands import register_cmds
-from bot.bot_tasks import getFreeGames, pushFreeGames, freeGamesStatus
+from bot.bot_tasks import get_free_games, push_free_items, update_music_status
 
 BOT_VERSION = 'v0.1.2 20221201'
 
@@ -53,22 +53,22 @@ if any(botMarketUUID):
 async def interval_minutes_tasks():
     try:
         # 获取Epic免费商品，写入数据库中
-        logger.info(f"Execute getFreeGames task...")
-        await getFreeGames()
+        logger.info(f"Execute get_free_games task...")
+        await get_free_games()
 
         epicFreeSQL = sqlite_epic_free.EpicFreeGamesSQL()
         # 查询没有没被推送过的免费商品  "0"代表没被推送过，"1"代表已被推送过
         items = epicFreeSQL.get_item_by_push_flag(0)
         if any(items):
             # 执行推送任务
-            logger.info(f"Execute pushFreeGames task...")
-            await pushFreeGames(bot)
+            logger.info(f"Execute push_free_items task...")
+            await push_free_items(bot)
         else:
             logger.info(f"No free item to be pushed to the channel.")
 
         # 更新Bot状态
-        logger.info(f"Execute freeGamesStatus task...")
-        await freeGamesStatus(bot)
+        logger.info(f"Execute update_music_status task...")
+        await update_music_status(bot)
 
     except Exception as e:
         logger.exception(e, exc_info=True)

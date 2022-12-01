@@ -6,7 +6,7 @@ from khl.card import CardMessage, Card, Module, Element
 from khl.command import Command
 
 from . import sqlite_epic_free, sqlite_kook_channel
-from .bot_tasks import getFreeGames, pushFreeGames, freeGamesStatus
+from .bot_tasks import get_free_games, push_free_items, update_music_status
 from .bot_utils import BotUtils
 from .card_storage import helpInfoCardMessage, freeGameCardMessage
 
@@ -17,14 +17,14 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
     # ========================================基础指令================================================
     @Command.command(name='helloepic', case_sensitive=False)
     async def hello(msg: Message):
-        BotUtils.msgLogging(logger, msg)
+        BotUtils.logging_msg(logger, msg)
         await msg.reply('来Epic买点游戏？')
 
     # ========================================EPIC指令================================================
     # Epic指令
     @Command.command(name='epic', prefixes=[".", "。"], case_sensitive=False)
     async def epic(msg: Message, command: str = None, *args):
-        BotUtils.msgLogging(logger, msg)
+        BotUtils.logging_msg(logger, msg)
         channelSQL = sqlite_kook_channel.KookChannelSQL()
         epicFreeSQL = sqlite_epic_free.EpicFreeGamesSQL()
         current_channel_guild_id = msg.ctx.guild.id
@@ -195,7 +195,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
     # admin指令
     @Command.command(name='admin', prefixes=[".", "。"], case_sensitive=False)
     async def admin(msg: Message, command: str = None, *args):
-        BotUtils.msgLogging(logger, msg)
+        BotUtils.logging_msg(logger, msg)
         # 创建SQL类，用于和数据库对接
         channelSQL = sqlite_kook_channel.KookChannelSQL()
         epicFreeSQL = sqlite_epic_free.EpicFreeGamesSQL()
@@ -206,12 +206,12 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                     type=MessageTypes.KMD)
 
                 elif command in ['update']:
-                    await getFreeGames()
+                    await get_free_games()
                     await msg.reply("执行获取Epic免费商品成功！", type=MessageTypes.KMD)
 
                 elif command in ['push']:
-                    logger.info(f"Execute pushFreeGames task...")
-                    await pushFreeGames(bot)
+                    logger.info(f"Execute push_free_items task...")
+                    await push_free_items(bot)
                     await msg.reply("执行推送Epic免费商品成功！", type=MessageTypes.KMD)
 
                 elif command in ['delete']:
@@ -286,7 +286,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                         "`.admin status stop` 停止目前状态", type=MessageTypes.KMD)
 
                     elif args[0] in ['update']:
-                        await freeGamesStatus(bot)
+                        await update_music_status(bot)
                         await msg.reply("Bot更新状态成功！", type=MessageTypes.KMD)
 
                     elif args[0] in ['stop']:

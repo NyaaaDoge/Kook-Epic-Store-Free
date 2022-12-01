@@ -7,7 +7,7 @@ EPIC_FREE_GAMES_URL = "https://store-site-backend-static-ipv4.ak.epicgames.com/"
                       "freeGamesPromotions?locale=zh-CN&country=CN&allowCountries=CN"
 
 
-async def getEpicFreeGames() -> list:
+async def get_epic_free_games() -> list:
     headers = {
         "Referer": "https://www.epicgames.com/store/zh-CN/",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "

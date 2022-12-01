@@ -85,7 +85,7 @@ class EpicFreeGamesSQL(object):
                 # app不存在，插入数据，如果不是仅限激活码激活，插入数据
                 if not item.get('isCodeRedemptionOnly'):
                     # 检查是否是折扣设置为0的商品，在promotions里面判断
-                    free_info = BotUtils().getItemFreeStatus(item)
+                    free_info = BotUtils().get_item_free_status(item)
                     # 如果是可以免费领取的商品
                     if free_info.get('is_free'):
                         free_start_date = free_info.get('startDate', '')
@@ -201,7 +201,7 @@ class EpicFreeGamesSQL(object):
             # 获取免费领取开始时间
             original_price = item.get('price').get('totalPrice').get('fmtPrice').get('originalPrice', '')
             discount_price = item.get('price').get('totalPrice').get('fmtPrice').get('discountPrice', '')
-            free_info = BotUtils().getItemFreeStatus(item)
+            free_info = BotUtils().get_item_free_status(item)
             # 如果是可以免费领取的商品
             if free_info.get('is_free'):
                 free_start_date = free_info.get('startDate', '')
