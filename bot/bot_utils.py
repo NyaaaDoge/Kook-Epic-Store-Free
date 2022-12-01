@@ -1,3 +1,7 @@
+from logging import Logger
+from khl import Message
+
+
 class BotUtils(object):
     @staticmethod
     def getItemFreeStatus(item_json_raw: dict) -> dict:
@@ -66,3 +70,11 @@ class BotUtils(object):
                 return free_info
 
         return free_info
+
+    @staticmethod
+    def msgLogging(logger: Logger, msg: Message):
+        logger.info(
+            f"Message(G_id:{msg.ctx.guild.id} - "
+            f"C_id:{msg.ctx.channel.id} - "
+            f"Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - "
+            f"Content = {msg.content})")
