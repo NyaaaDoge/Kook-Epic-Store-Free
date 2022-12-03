@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 
 def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
     # ========================================基础指令================================================
-    @Command.command(name='helloepic', case_sensitive=False)
+    @bot.command(name="helloepic", case_sensitive=False)
     async def hello(msg: Message):
         BotUtils.logging_msg(logger, msg)
         await msg.reply('来Epic买点游戏？')
 
     # ========================================EPIC指令================================================
     # Epic指令
-    @Command.command(name='epic', prefixes=[".", "。"], case_sensitive=False)
+    @bot.command(name="epic", prefixes=[".", "。"], case_sensitive=False)
     async def epic(msg: Message, command: str = None, *args):
         BotUtils.logging_msg(logger, msg)
         channelSQL = sqlite_kook_channel.KookChannelSQL()
@@ -191,9 +191,9 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
 
             # 开发者指令
 
-    # ========================================EPIC指令================================================
+    # ========================================ADMIN指令================================================
     # admin指令
-    @Command.command(name='admin', prefixes=[".", "。"], case_sensitive=False)
+    @bot.command(name="admin", prefixes=[".", "。"], case_sensitive=False)
     async def admin(msg: Message, command: str = None, *args):
         BotUtils.logging_msg(logger, msg)
         # 创建SQL类，用于和数据库对接
@@ -297,9 +297,5 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                 logger.exception(e, exc_info=True)
                 await msg.reply(f"{e}")
 
-    # 注册指令
-    bot.command.add(hello)
-    bot.command.add(admin)
-    bot.command.add(epic)
     # 注册完毕更改所有指令前缀
-    bot.command.update_prefixes('.', '。')
+    bot.command.update_prefixes(".", "。")
