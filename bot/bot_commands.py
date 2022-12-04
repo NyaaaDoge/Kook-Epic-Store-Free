@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 
 from khl import Message, Bot, MessageTypes
 from khl.card import CardMessage, Card, Module, Element
-from khl.command import Command
 
 from . import sqlite_epic_free, sqlite_kook_channel
 from .bot_tasks import get_free_games, push_free_items, update_music_status
@@ -14,16 +13,17 @@ logger = logging.getLogger(__name__)
 
 
 def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
+
     # ========================================基础指令================================================
     @bot.command(name="helloepic", case_sensitive=False)
-    async def hello(msg: Message):
+    async def cmd_hello(msg: Message):
         BotUtils.logging_msg(logger, msg)
         await msg.reply('来Epic买点游戏？')
 
     # ========================================EPIC指令================================================
-    # Epic指令
+
     @bot.command(name="epic", prefixes=[".", "。"], case_sensitive=False)
-    async def epic(msg: Message, command: str = None, *args):
+    async def cmd_epic(msg: Message, command: str = None, *args):
         BotUtils.logging_msg(logger, msg)
         channelSQL = sqlite_kook_channel.KookChannelSQL()
         epicFreeSQL = sqlite_epic_free.EpicFreeGamesSQL()
@@ -192,9 +192,9 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
             # 开发者指令
 
     # ========================================ADMIN指令================================================
-    # admin指令
+
     @bot.command(name="admin", prefixes=[".", "。"], case_sensitive=False)
-    async def admin(msg: Message, command: str = None, *args):
+    async def cmd_admin(msg: Message, command: str = None, *args):
         BotUtils.logging_msg(logger, msg)
         # 创建SQL类，用于和数据库对接
         channelSQL = sqlite_kook_channel.KookChannelSQL()
