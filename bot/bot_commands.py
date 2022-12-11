@@ -7,9 +7,10 @@ from khl.card import CardMessage, Card, Module, Element
 from . import sqlite_epic_free, sqlite_kook_channel
 from .bot_tasks import get_free_games, push_free_items, update_music_status
 from .bot_utils import BotUtils
-from .card_storage import helpInfoCardMessage, freeGameCardMessage
+from .card_storage import help_card_message, free_game_card_message
 
 logger = logging.getLogger(__name__)
+BotUtils.create_log_file(logger, 'commands_log.log')
 
 
 def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
@@ -33,7 +34,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
         current_user = await current_guild.fetch_user(msg.author.id)
 
         if command is None:
-            await msg.reply(content=helpInfoCardMessage(BOT_VERSION), type=MessageTypes.CARD)
+            await msg.reply(content=help_card_message(BOT_VERSION), type=MessageTypes.CARD)
 
         try:
             # 需要Bot拥有管理角色权限
@@ -49,7 +50,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
 
                 if command in ['free']:
                     if not any(args):
-                        await msg.reply(content=helpInfoCardMessage(BOT_VERSION), type=MessageTypes.CARD)
+                        await msg.reply(content=help_card_message(BOT_VERSION), type=MessageTypes.CARD)
 
                     # 开启订阅
                     elif args[0] in ['on']:
@@ -89,7 +90,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                                 # 进行推送
                                                 await bot.client.send(target=current_channel,
                                                                       type=MessageTypes.CARD,
-                                                                      content=freeGameCardMessage(item))
+                                                                      content=free_game_card_message(item))
                                                 # 推送完毕
                                                 logger.info(
                                                     f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
@@ -131,7 +132,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                 if start_time < now_time < end_time:
                                     await bot.client.send(target=current_channel,
                                                           type=MessageTypes.CARD,
-                                                          content=freeGameCardMessage(item))
+                                                          content=free_game_card_message(item))
                                     # 推送完毕
                                     logger.info(
                                         f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
@@ -151,7 +152,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                 if now_time < start_time:
                                     await bot.client.send(target=current_channel,
                                                           type=MessageTypes.CARD,
-                                                          content=freeGameCardMessage(item))
+                                                          content=free_game_card_message(item))
                                     # 推送完毕
                                     logger.info(
                                         f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"

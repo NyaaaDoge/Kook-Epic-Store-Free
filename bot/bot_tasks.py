@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from khl import Bot, MessageTypes
 
 from bot import epic_store_core, sqlite_epic_free, sqlite_kook_channel
-from bot.card_storage import freeGameCardMessage
+from bot.card_storage import free_game_card_message
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ async def push_free_items(bot: Bot):
                         if db_end_time > now_time:
                             # 进行推送
                             await bot.client.send(target=target_channel, type=MessageTypes.CARD,
-                                                  content=freeGameCardMessage(item))
+                                                  content=free_game_card_message(item))
                             # 推送完毕
                             logger.info(
                                 f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"

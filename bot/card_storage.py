@@ -7,7 +7,7 @@ from bot import sqlite_epic_free
 
 
 # 免费游戏卡片 按时间做分类
-def freeGameCardMessage(item_free_tuple_raw):
+def free_game_card_message(item_free_tuple_raw):
     item = sqlite_epic_free.DatabaseFreeItem(*item_free_tuple_raw)
     card_message = CardMessage()
 
@@ -53,7 +53,7 @@ def freeGameCardMessage(item_free_tuple_raw):
 
 
 # 帮助信息卡片
-def helpInfoCardMessage(BOT_VERSION: str = 'v???'):
+def help_card_message(BOT_VERSION: str = 'v???'):
     card_message = CardMessage()
     card = Card(theme=Types.Theme.INFO)
     card.append(Module.Header(f'Epic Store Free Bot 使用说明'))

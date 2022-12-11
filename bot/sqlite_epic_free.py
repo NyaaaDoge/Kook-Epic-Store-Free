@@ -94,8 +94,8 @@ class EpicFreeGamesSQL(object):
                     else:
                         continue
 
-                    title = item.get('title', '').replace("'", "''")
-                    description = item.get('description').replace("'", "''")
+                    title = item.get('title', '')
+                    description = item.get('description')
                     store_url = "https://store.epicgames.com/zh-CN/p/" + item.get('catalogNs').get('mappings')[0].get(
                         'pageSlug', '')
                     epic_release_date = item.get('effectiveDate', '')
@@ -113,20 +113,20 @@ class EpicFreeGamesSQL(object):
                     original_price = item.get('price').get('totalPrice').get('fmtPrice').get('originalPrice', '')
                     discount_price = item.get('price').get('totalPrice').get('fmtPrice').get('discountPrice', '')
 
-                    insert_str = (f"{item['id']}",
-                                  f"{title}",
-                                  f"{description}",
-                                  f"{store_url}",
-                                  f"{epic_release_date}",
-                                  f"{item['offerType']}",
-                                  f"{image_wide}",
-                                  f"{image_tall}",
-                                  f"{image_thumbnail}",
-                                  f"{item['seller']['name']}",
-                                  f"{original_price}",
-                                  f"{discount_price}",
-                                  f"{free_start_date}",
-                                  f"{free_end_date}")
+                    insert_str = (item['id'],
+                                  title,
+                                  description,
+                                  store_url,
+                                  epic_release_date,
+                                  item['offerType'],
+                                  image_wide,
+                                  image_tall,
+                                  image_thumbnail,
+                                  item['seller']['name'],
+                                  original_price,
+                                  discount_price,
+                                  free_start_date,
+                                  free_end_date,)
 
                     conn.execute(f"INSERT INTO EpicFreeGames VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)", insert_str)
                     conn.commit()
@@ -194,8 +194,8 @@ class EpicFreeGamesSQL(object):
 
     def update_item_by_game_id(self, game_id, item):
         try:
-            title = item.get('title', '').replace("'", "''")
-            description = item.get('description').replace("'", "''")
+            title = item.get('title', '')
+            description = item.get('description')
             store_url = "https://store.epicgames.com/zh-CN/p/" + item.get('catalogNs').get('mappings')[0].get(
                 'pageSlug', '')
             # 获取免费领取开始时间

@@ -1,3 +1,5 @@
+import logging
+import os
 from logging import Logger
 from khl import Message
 
@@ -73,8 +75,31 @@ class BotUtils(object):
 
     @staticmethod
     def logging_msg(logger: Logger, msg: Message):
-        logger.info(
-            f"Message(G_id:{msg.ctx.guild.id} - "
-            f"C_id:{msg.ctx.channel.id} - "
-            f"Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - "
-            f"Content = {msg.content})")
+        logger.info(f"Message: G_id({msg.ctx.guild.id})-C_id({msg.ctx.channel.id}) - "
+                    f"Au({msg.author_id})-({msg.author.username}#{msg.author.identify_num}) = {msg.content}")
+
+    @staticmethod
+    def create_log_file(logger: Logger, filename: str):
+        """
+        将日志记录到日志文件
+        :param logger:
+        :param filename:
+        :return:
+        """
+        filename = './logs/' + filename
+
+        try:
+            # 尝试创建 FileHandler
+            fh = logging.FileHandler(filename=filename, encoding='utf-8', mode='a')
+
+        except OSError:
+            os.makedirs(os.path.dirname(filename))
+            # 再次尝试创建 FileHandler
+            fh = logging.FileHandler(filename=filename, encoding="utf-8", mode="a")
+
+        fh.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s -%(message)s')
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+
+        return logger
