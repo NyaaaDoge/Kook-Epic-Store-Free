@@ -13,9 +13,9 @@ class BotUtils(object):
         :return free_info = {'is_free': False, ...}:
         """
         free_info = {'is_free': False}
-        # 如果只可以用激活码激活就直接返回False
-        if item_json_raw.get('isCodeRedemptionOnly'):
-            return free_info
+        # 如果只可以用激活码激活就直接返回False，应该不用了，现在直接判断有无日期和价格就行
+        # if item_json_raw.get('isCodeRedemptionOnly'):
+        #     return free_info
 
         promotions = item_json_raw.get('promotions')
         prices = item_json_raw.get('price')

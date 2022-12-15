@@ -188,7 +188,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
 
         except Exception as e:
             logger.exception(e, exc_info=True)
-            await msg.reply(f"出现了一点问题，可能是Bot没有管理角色权限，也有可能是获取内容出错请稍后再试。")
+            await msg.reply(f"Bot可能是没有管理角色权限！请将Bot管理角色权限打开，防止服务器内其他用户滥用！")
 
             # 开发者指令
 

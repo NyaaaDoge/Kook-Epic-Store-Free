@@ -56,15 +56,15 @@ async def get_free_games():
             logger.debug(f"The {len(free_items)} item(s) inserted info the table fail.")
         # 对于重复game_id的物品，更新数据
         for free_item in free_items:
-            if not free_item.get('isCodeRedemptionOnly'):
-                current_game_id = free_item['id']
-                title = free_item.get('title', '').replace("'", "''")
-                db_data = epicFreeSQL.get_item_by_game_id(current_game_id)
-                # TODO 如果是以前已经存在于数据库的商品，重新修改了领取起止时间可以修改push flag?
-                if any(db_data):
-                    # 执行更新操作
-                    epicFreeSQL.update_item_by_game_id(current_game_id, free_item)
-                    logger.info(f"Successfully update item({current_game_id}:{title})")
+            # if free_item.get('isCodeRedemptionOnly'):
+            current_game_id = free_item['id']
+            title = free_item.get('title', '').replace("'", "''")
+            db_data = epicFreeSQL.get_item_by_game_id(current_game_id)
+            # TODO 如果是以前已经存在于数据库的商品，重新修改了领取起止时间可以修改push flag?
+            if any(db_data):
+                # 执行更新操作
+                epicFreeSQL.update_item_by_game_id(current_game_id, free_item)
+                logger.info(f"Successfully update item({current_game_id}:{title})")
 
     except Exception as e:
         logger.exception(e, exc_info=True)

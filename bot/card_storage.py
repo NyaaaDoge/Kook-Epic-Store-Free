@@ -40,9 +40,22 @@ def free_game_card_message(item_free_tuple_raw):
         card.append(Module.Countdown(end=db_start_time_bj, mode=Types.CountdownMode.DAY))
         card.append(Module.Context(Element.Text("离免费领取时间**结束**还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
+    # 添加图片
+    if any(item.image_wide):
+        card.append(Module.Container(Element.Image(f"{item.image_wide}", size=Types.Size.SM)))
+    elif any(item.image_tall):
+        card.append(Module.Container(Element.Image(f"{item.image_tall}", size=Types.Size.SM)))
+    elif any(item.image_thumbnail):
+        card.append(Module.Container(Element.Image(f"{item.image_thumbnail}", size=Types.Size.SM)))
+    # 发行信息
+    release_str = ''
+    if item.epic_release_date not in ['2099-01-01T00:00:00.000Z']:
+        release_str = f"登陆Epic商店日期：{fmt_release_time}"
+    if item.seller not in ['Epic Dev Test Account']:
+        release_str += f"\n发行商：{item.seller}"
+    if any(release_str):
+        card.append(Module.Context(release_str))
 
-    card.append(Module.Container(Element.Image(f"{item.image_wide}", size=Types.Size.SM)))
-    card.append(Module.Context(f"登陆Epic商店日期：{fmt_release_time}\n发行商：{item.seller}"))
     card.append(Module.Section(text=Element.Text(f"> {item.description}", type=Types.Text.KMD)))
     card.append(Module.Context(Element.Text('[Bot Market](https://www.botmarket.cn/bots?id=108) | '
                                             '[加入交流服务器获取更多资讯](https://kook.top/nGr9DH) | '
