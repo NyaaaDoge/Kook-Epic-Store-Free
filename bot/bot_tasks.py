@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
-from khl import Bot, MessageTypes
+from khl import Bot, MessageTypes, HTTPRequester, PublicChannel
 
 from bot import epic_store_core, sqlite_epic_free, sqlite_kook_channel
 from bot.card_storage import free_game_card_message
@@ -99,14 +99,34 @@ async def push_free_items(bot: Bot):
                         db_end_time = datetime.fromisoformat(db_item.free_end_date[:-1])
                         # 如果还未结束领取，进行推送
                         if db_end_time > now_time:
-                            # 进行推送
-                            await bot.client.send(target=target_channel, type=MessageTypes.CARD,
-                                                  content=free_game_card_message(item))
-                            # 推送完毕
-                            logger.info(
-                                f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
-                                f"(G_id-{target_channel.guild_id}, C_name-{target_channel.name}, "
-                                f"C_id-{target_channel.id})")
+                            try:
+                                await send_item_to_channel(bot, target_channel, item)
+                            #     # 进行推送
+                            #     await bot.client.send(target=target_channel, type=MessageTypes.CARD,
+                            #                           content=free_game_card_message(item))
+                            #     # 推送完毕
+                            #     logger.info(
+                            #         f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
+                            #         f"(G_id-{target_channel.guild_id}, C_name-{target_channel.name}, "
+                            #         f"C_id-{target_channel.id})")
+                            #
+                            # # 如果遇到 40000 代码再创建不发送描述的任务
+                            # except HTTPRequester.APIRequestFailed as failed:
+                            #     if failed.err_code == 40000:
+                            #         try:
+                            #             logger.exception(
+                            #                 f"Failed to send card message for {db_item.title}({db_item.game_id}), "
+                            #                 f"sending card message without descriptions...", exc_info=False)
+                            #             # 进行推送
+                            #             await bot.client.send(target=target_channel, type=MessageTypes.CARD,
+                            #                                   content=free_game_card_message(item, desc=False))
+                            #             # 推送完毕
+                            #             logger.info(
+                            #                 f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
+                            #                 f"(G_id-{target_channel.guild_id}, C_name-{target_channel.name}, "
+                            #                 f"C_id-{target_channel.id}) without desc.")
+                            except Exception as e:
+                                logger.exception(f"Free item({db_item.game_id}:{db_item.title}): {e}")
 
             except Exception as e:
                 logger.exception(f"Channel{channel}: {e}")
@@ -125,6 +145,40 @@ async def push_free_items(bot: Bot):
 
     finally:
         logger.info("Task push_free_items done.")
+
+
+async def send_item_to_channel(bot: Bot, target_channel: PublicChannel, item_free_tuple_raw):
+    db_item = sqlite_epic_free.DatabaseFreeItem(*item_free_tuple_raw)
+    try:
+        # 进行推送
+        await bot.client.send(target=target_channel, type=MessageTypes.CARD,
+                              content=free_game_card_message(item_free_tuple_raw))
+        # 推送完毕
+        logger.info(
+            f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
+            f"(G_id-{target_channel.guild_id}, C_name-{target_channel.name}, "
+            f"C_id-{target_channel.id})")
+
+    # 如果遇到 40000 代码再创建不发送描述的任务
+    except HTTPRequester.APIRequestFailed as failed:
+        if failed.err_code == 40000:
+            try:
+                logger.exception(
+                    f"Failed to send card message for {db_item.title}({db_item.game_id}), "
+                    f"sending card message without descriptions...", exc_info=False)
+                # 进行推送
+                await bot.client.send(target=target_channel, type=MessageTypes.CARD,
+                                      content=free_game_card_message(item_free_tuple_raw, desc=False))
+                # 推送完毕
+                logger.info(
+                    f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
+                    f"(G_id-{target_channel.guild_id}, C_name-{target_channel.name}, "
+                    f"C_id-{target_channel.id}) without desc.")
+            except Exception as e:
+                logger.exception(f"Free item({db_item.game_id}:{db_item.title}): {e}")
+
+    except Exception as e:
+        logger.exception(f"Free item({db_item.game_id}:{db_item.title}): {e}")
 
 
 # ----------------------------------------更新状态任务---------------------------------------------

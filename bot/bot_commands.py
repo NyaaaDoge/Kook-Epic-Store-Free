@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from khl import Message, Bot, MessageTypes
 from khl.card import CardMessage, Card, Module, Element
 
-from . import sqlite_epic_free, sqlite_kook_channel
+from . import sqlite_epic_free, sqlite_kook_channel, bot_tasks
 from .bot_tasks import get_free_games, push_free_items, update_music_status
 from .bot_utils import BotUtils
 from .card_storage import help_card_message, free_game_card_message
@@ -88,14 +88,15 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                             # 如果还未结束领取，先进行推送
                                             if db_end_time > now_time:
                                                 # 进行推送
-                                                await bot.client.send(target=current_channel,
-                                                                      type=MessageTypes.CARD,
-                                                                      content=free_game_card_message(item))
-                                                # 推送完毕
-                                                logger.info(
-                                                    f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
-                                                    f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
-                                                    f"C_id-{current_channel.id})")
+                                                await bot_tasks.send_item_to_channel(bot, current_channel, item)
+                                                # await bot.client.send(target=current_channel,
+                                                #                       type=MessageTypes.CARD,
+                                                #                       content=free_game_card_message(item))
+                                                # # 推送完毕
+                                                # logger.info(
+                                                #     f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
+                                                #     f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
+                                                #     f"C_id-{current_channel.id})")
                                 else:
                                     await msg.reply(":yellow_square:服务器新增推送频道失败，因为目前频道已加入过推送功能！",
                                                     type=MessageTypes.KMD)
@@ -130,14 +131,15 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                 end_time = datetime.fromisoformat(db_item.free_end_date[:-1])
                                 # 在领取区间内
                                 if start_time < now_time < end_time:
-                                    await bot.client.send(target=current_channel,
-                                                          type=MessageTypes.CARD,
-                                                          content=free_game_card_message(item))
-                                    # 推送完毕
-                                    logger.info(
-                                        f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
-                                        f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
-                                        f"C_id-{current_channel.id})")
+                                    await bot_tasks.send_item_to_channel(bot, current_channel, item)
+                                    # await bot.client.send(target=current_channel,
+                                    #                       type=MessageTypes.CARD,
+                                    #                       content=free_game_card_message(item))
+                                    # # 推送完毕
+                                    # logger.info(
+                                    #     f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
+                                    #     f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
+                                    #     f"C_id-{current_channel.id})")
 
                     # 获取预告领取的游戏
                     elif args[0] in ['coming']:
@@ -150,14 +152,15 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                 start_time = datetime.fromisoformat(db_item.free_start_date[:-1])
                                 # 在预告区间内
                                 if now_time < start_time:
-                                    await bot.client.send(target=current_channel,
-                                                          type=MessageTypes.CARD,
-                                                          content=free_game_card_message(item))
-                                    # 推送完毕
-                                    logger.info(
-                                        f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
-                                        f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
-                                        f"C_id-{current_channel.id})")
+                                    await bot_tasks.send_item_to_channel(bot, current_channel, item)
+                                    # await bot.client.send(target=current_channel,
+                                    #                       type=MessageTypes.CARD,
+                                    #                       content=free_game_card_message(item))
+                                    # # 推送完毕
+                                    # logger.info(
+                                    #     f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
+                                    #     f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
+                                    #     f"C_id-{current_channel.id})")
 
             if any(current_user_roles) or msg.author.id in current_guild.master_id:
                 # 如果用户没有角色，只允许服务器所有者执行
@@ -188,7 +191,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
 
         except Exception as e:
             logger.exception(e, exc_info=True)
-            await msg.reply(f"Bot可能是没有管理角色权限！请将Bot管理角色权限打开，防止服务器内其他用户滥用！")
+            await msg.reply(f"出现了一些未知问题，请稍后再试，或者联系Bot开发者解决。")
 
             # 开发者指令
 

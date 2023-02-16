@@ -75,70 +75,69 @@ class EpicFreeGamesSQL(object):
 
     def insert_items(self, items: list):
         try:
-            conn = self.conn()
-            for item in items:
-                game_id = conn.execute(
-                    f"SELECT game_id FROM EpicFreeGames WHERE game_id = '{item['id']}'").fetchone()
-                # app已存在
-                if game_id is not None:
-                    continue
-                # app不存在，插入数据，如果不是仅限激活码激活，插入数据
-                # if not item.get('isCodeRedemptionOnly'):
-                # 检查是否是折扣设置为0的商品，在promotions里面判断
-                free_info = BotUtils().get_item_free_status(item)
-                # 如果是可以免费领取的商品
-                if free_info.get('is_free'):
-                    free_start_date = free_info.get('startDate', '')
-                    free_end_date = free_info.get('endDate', '')
-                # 如果不是，跳过此条数据的插入
-                else:
-                    continue
+            with self.conn() as conn:
+                for item in items:
+                    game_id = conn.execute(
+                        f"SELECT game_id FROM EpicFreeGames WHERE game_id = '{item['id']}'").fetchone()
+                    # app已存在
+                    if game_id is not None:
+                        continue
+                    # app不存在，插入数据，如果不是仅限激活码激活，插入数据
+                    # 检查是否是折扣设置为0的商品，在promotions里面判断
+                    free_info = BotUtils().get_item_free_status(item)
+                    # 如果是可以免费领取的商品
+                    if free_info.get('is_free'):
+                        free_start_date = free_info.get('startDate', '')
+                        free_end_date = free_info.get('endDate', '')
+                    # 如果不是，跳过此条数据的插入
+                    else:
+                        continue
 
-                title = item.get('title', '')
-                description = item.get('description')
-                mappings = item.get('catalogNs').get('mappings')
-                if mappings:
-                    store_url = "https://store.epicgames.com/zh-CN/p/" + mappings[0].get('pageSlug', '')
-                else:
-                    store_url = "https://store.epicgames.com/zh-CN/p/" + item.get('productSlug', '')
-                epic_release_date = item.get('effectiveDate', '')
-                # 获取图片地址
-                image_wide = ""
-                image_tall = ""
-                image_thumbnail = ""
-                for image in item.get('keyImages'):
-                    if image.get('type') == 'OfferImageWide':
-                        image_wide = image.get('url', '')
-                    if image.get('type') == 'OfferImageTall':
-                        image_tall = image.get('url', '')
-                    if image.get('type') == 'Thumbnail':
-                        image_thumbnail = image.get('url', '')
-                    if not any(image_thumbnail):
-                        if image.get('type') == 'DieselStoreFrontWide':
+                    title = item.get('title', '')
+                    description = item.get('description')
+                    mappings = item.get('offerMappings')
+                    if mappings:
+                        store_url = "https://store.epicgames.com/zh-CN/p/" + mappings[0].get('pageSlug', '')
+                    else:
+                        store_url = "https://store.epicgames.com/zh-CN/p/"
+                    epic_release_date = item.get('effectiveDate', '')
+                    # 获取图片地址
+                    image_wide = ""
+                    image_tall = ""
+                    image_thumbnail = ""
+                    for image in item.get('keyImages'):
+                        if image.get('type') == 'OfferImageWide':
+                            image_wide = image.get('url', '')
+                        if image.get('type') == 'OfferImageTall':
+                            image_tall = image.get('url', '')
+                        if image.get('type') == 'Thumbnail':
                             image_thumbnail = image.get('url', '')
+                        if not any(image_thumbnail):
+                            if image.get('type') == 'DieselStoreFrontWide':
+                                image_thumbnail = image.get('url', '')
 
-                original_price = item.get('price').get('totalPrice').get('fmtPrice').get('originalPrice', '')
-                discount_price = item.get('price').get('totalPrice').get('fmtPrice').get('discountPrice', '')
+                    original_price = item.get('price').get('totalPrice').get('fmtPrice').get('originalPrice', '')
+                    discount_price = item.get('price').get('totalPrice').get('fmtPrice').get('discountPrice', '')
 
-                insert_str = (item['id'],
-                              title,
-                              description,
-                              store_url,
-                              epic_release_date,
-                              item['offerType'],
-                              image_wide,
-                              image_tall,
-                              image_thumbnail,
-                              item['seller']['name'],
-                              original_price,
-                              discount_price,
-                              free_start_date,
-                              free_end_date,)
+                    insert_str = (item['id'],
+                                  title,
+                                  description,
+                                  store_url,
+                                  epic_release_date,
+                                  item['offerType'],
+                                  image_wide,
+                                  image_tall,
+                                  image_thumbnail,
+                                  item['seller']['name'],
+                                  original_price,
+                                  discount_price,
+                                  free_start_date,
+                                  free_end_date,)
 
-                conn.execute(f"INSERT INTO EpicFreeGames VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)", insert_str)
-                conn.commit()
-                logger.info(f"Item({item['id']}:{title}) has been inserted into table.")
-            return True
+                    conn.execute(f"INSERT INTO EpicFreeGames VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)", insert_str)
+                    conn.commit()
+                    logger.info(f"Item({item['id']}:{title}) has been inserted into table.")
+                return True
         except Exception as e:
             logger.exception(e, exc_info=True)
             return False
@@ -203,7 +202,7 @@ class EpicFreeGamesSQL(object):
         try:
             title = item.get('title', '')
             description = item.get('description')
-            mappings = item.get('catalogNs').get('mappings')
+            mappings = item.get('offerMappings')
             if mappings:
                 store_url = "https://store.epicgames.com/zh-CN/p/" + mappings[0].get('pageSlug', '')
             else:
