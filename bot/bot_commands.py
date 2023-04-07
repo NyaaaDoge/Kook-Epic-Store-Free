@@ -7,14 +7,32 @@ from khl.card import CardMessage, Card, Module, Element
 from . import sqlite_epic_free, sqlite_kook_channel, bot_tasks
 from .bot_tasks import get_free_games, push_free_items, update_music_status
 from .bot_utils import BotUtils
-from .card_storage import help_card_message, free_game_card_message
+from .card_storage import help_card_message
 
 logger = logging.getLogger(__name__)
 BotUtils.create_log_file(logger, 'commands_log.log')
 
 
-def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
+async def has_admin_and_manage(bot: Bot, user_id, guild_id):
+    try:
+        guild = await bot.client.fetch_guild(guild_id)
+        user_roles = (await guild.fetch_user(user_id)).roles
+        guild_roles = await (await bot.client.fetch_guild(guild_id)).fetch_roles()
+        # 遍历服务器身分组
+        for role in guild_roles:
+            # 查看当前遍历到的身分组是否在用户身分组内且是否有管理员权限
+            if role.id in user_roles and role.has_permission(0) or role.has_permission(5):
+                return True
+        # 由于腐竹可能没给自己上身分组，但是依旧拥有管理员权限
+        if user_id == guild.master_id:
+            return True
+        return False
+    except Exception as e:
+        logger.exception(f"Failed to get permissions (U:{user_id},G:{guild_id}). {e}", exc_info=False)
+        return False
 
+
+def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
     # ========================================基础指令================================================
     @bot.command(name="helloepic", case_sensitive=False)
     async def cmd_hello(msg: Message):
@@ -37,9 +55,6 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
             await msg.reply(content=help_card_message(BOT_VERSION), type=MessageTypes.CARD)
 
         try:
-            # 需要Bot拥有管理角色权限
-            current_user_roles = await current_user.fetch_roles()
-
             async def exec_mods_commands():
                 # 获取频道数据
                 current_channel_id = msg.ctx.channel.id
@@ -89,14 +104,7 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                             if db_end_time > now_time:
                                                 # 进行推送
                                                 await bot_tasks.send_item_to_channel(bot, current_channel, item)
-                                                # await bot.client.send(target=current_channel,
-                                                #                       type=MessageTypes.CARD,
-                                                #                       content=free_game_card_message(item))
-                                                # # 推送完毕
-                                                # logger.info(
-                                                #     f"Free item(game_id-{item[1]}:{item[2]}) has been pushed to channel"
-                                                #     f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
-                                                #     f"C_id-{current_channel.id})")
+
                                 else:
                                     await msg.reply(":yellow_square:服务器新增推送频道失败，因为目前频道已加入过推送功能！",
                                                     type=MessageTypes.KMD)
@@ -132,14 +140,6 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                 # 在领取区间内
                                 if start_time < now_time < end_time:
                                     await bot_tasks.send_item_to_channel(bot, current_channel, item)
-                                    # await bot.client.send(target=current_channel,
-                                    #                       type=MessageTypes.CARD,
-                                    #                       content=free_game_card_message(item))
-                                    # # 推送完毕
-                                    # logger.info(
-                                    #     f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
-                                    #     f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
-                                    #     f"C_id-{current_channel.id})")
 
                     # 获取预告领取的游戏
                     elif args[0] in ['coming']:
@@ -153,41 +153,11 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                 # 在预告区间内
                                 if now_time < start_time:
                                     await bot_tasks.send_item_to_channel(bot, current_channel, item)
-                                    # await bot.client.send(target=current_channel,
-                                    #                       type=MessageTypes.CARD,
-                                    #                       content=free_game_card_message(item))
-                                    # # 推送完毕
-                                    # logger.info(
-                                    #     f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
-                                    #     f"(G_id-{current_channel.guild_id}, C_name-{current_channel.name}, "
-                                    #     f"C_id-{current_channel.id})")
 
-            if any(current_user_roles) or msg.author.id in current_guild.master_id:
-                # 如果用户没有角色，只允许服务器所有者执行
-                if msg.author.id in current_guild.master_id:
-                    # 执行指令操作
-                    await exec_mods_commands()
-                    return
-
-                # 遍历用户的角色构成
-                for user_role in current_user_roles:
-                    # 如果是服务器管理员才能执行操作，获取用户的permissions并判断是否有管理员(0) 频道管理(5)
-                    if user_role.has_permission(0) or user_role.has_permission(5) \
-                            or msg.author.id in current_guild.master_id or msg.author.id in developers:
-                        # 如果有一个角色满足条件就只执行一次指令操作
-                        try:
-                            await exec_mods_commands()
-
-                        except Exception as e:
-                            logger.exception(e, exc_info=True)
-                            await msg.reply("发生了一些未知错误，请联系开发者解决。")
-
-                        # 执行完毕跳出遍历
-                        finally:
-                            break
-
-                    else:
-                        await msg.reply(f"您没有权限 管理员 或 频道管理，故无法进行操作！")
+            if await has_admin_and_manage(bot, current_user.id, current_guild.id):
+                await exec_mods_commands()
+            else:
+                await msg.reply(f":red_square:**Bot没有管理角色权限！请在`服务器设置`中打开Bot角色的`管理角色权限`！**:red_square:")
 
         except Exception as e:
             logger.exception(e, exc_info=True)
@@ -249,6 +219,14 @@ def register_cmds(bot: Bot, developers: list, BOT_VERSION: str = 'v???'):
                                                     f"{len(channels)} 个频道推送功能开启\n"
                                                     f"免费游戏数据库中有 {len(free_items)} 行数据"))))
                     await msg.reply(cm)
+                    if any(args) and 'detail' in args[0]:
+                        guild_lists = []
+                        for guild in list_guild:
+                            user_list = await guild.fetch_user_list(guild.welcome_channel_id)
+                            master = await guild.fetch_user(guild.master_id)
+                            guild_lists.append(f"Guild: **{guild.name}** - *{len(user_list)} members*, "
+                                               f"Master: {master.nickname}#{master.identify_num}")
+                        await msg.reply("\n".join(guild_lists), type=MessageTypes.KMD)
 
                 elif command in ['here']:
                     current_channel_guild_id = msg.ctx.guild.id

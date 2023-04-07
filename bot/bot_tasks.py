@@ -101,30 +101,6 @@ async def push_free_items(bot: Bot):
                         if db_end_time > now_time:
                             try:
                                 await send_item_to_channel(bot, target_channel, item)
-                            #     # 进行推送
-                            #     await bot.client.send(target=target_channel, type=MessageTypes.CARD,
-                            #                           content=free_game_card_message(item))
-                            #     # 推送完毕
-                            #     logger.info(
-                            #         f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
-                            #         f"(G_id-{target_channel.guild_id}, C_name-{target_channel.name}, "
-                            #         f"C_id-{target_channel.id})")
-                            #
-                            # # 如果遇到 40000 代码再创建不发送描述的任务
-                            # except HTTPRequester.APIRequestFailed as failed:
-                            #     if failed.err_code == 40000:
-                            #         try:
-                            #             logger.exception(
-                            #                 f"Failed to send card message for {db_item.title}({db_item.game_id}), "
-                            #                 f"sending card message without descriptions...", exc_info=False)
-                            #             # 进行推送
-                            #             await bot.client.send(target=target_channel, type=MessageTypes.CARD,
-                            #                                   content=free_game_card_message(item, desc=False))
-                            #             # 推送完毕
-                            #             logger.info(
-                            #                 f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
-                            #                 f"(G_id-{target_channel.guild_id}, C_name-{target_channel.name}, "
-                            #                 f"C_id-{target_channel.id}) without desc.")
                             except Exception as e:
                                 logger.exception(f"Free item({db_item.game_id}:{db_item.title}): {e}")
 

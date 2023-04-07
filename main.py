@@ -6,7 +6,7 @@ from khl import Bot
 from bot.bot_commands import register_cmds
 from bot.bot_tasks import register_tasks
 
-BOT_VERSION = 'v0.1.5 20230216'
+BOT_VERSION = 'v0.1.6 20230407'
 
 logger = logging.getLogger("Main")
 
