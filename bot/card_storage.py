@@ -7,7 +7,7 @@ from bot import sqlite_epic_free
 
 
 # 免费游戏卡片 按时间做分类
-def free_game_card_message(item_free_tuple_raw, desc=True):
+def free_game_card_message(item_free_tuple_raw, desc=True, game_img=True):
     item = sqlite_epic_free.DatabaseFreeItem(*item_free_tuple_raw)
     card_message = CardMessage()
 
@@ -41,12 +41,13 @@ def free_game_card_message(item_free_tuple_raw, desc=True):
         card.append(Module.Context(Element.Text("离免费领取时间**结束**还有：", type=Types.Text.KMD)))
         card.append(Module.Countdown(end=db_end_time_bj, mode=Types.CountdownMode.DAY))
     # 添加图片
-    if any(item.image_wide):
-        card.append(Module.Container(Element.Image(f"{item.image_wide}", size=Types.Size.SM)))
-    elif any(item.image_tall):
-        card.append(Module.Container(Element.Image(f"{item.image_tall}", size=Types.Size.SM)))
-    elif any(item.image_thumbnail):
-        card.append(Module.Container(Element.Image(f"{item.image_thumbnail}", size=Types.Size.SM)))
+    if game_img:
+        if any(item.image_wide):
+            card.append(Module.Container(Element.Image(f"{item.image_wide}", size=Types.Size.SM)))
+        elif any(item.image_tall):
+            card.append(Module.Container(Element.Image(f"{item.image_tall}", size=Types.Size.SM)))
+        elif any(item.image_thumbnail):
+            card.append(Module.Container(Element.Image(f"{item.image_thumbnail}", size=Types.Size.SM)))
     if desc:
         # 发行信息
         release_str = ''

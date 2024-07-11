@@ -85,7 +85,7 @@ async def push_free_items(bot: Bot):
         sub_channels = channelSQL.get_channel_by_push_flag_free(1)
         epicFreeSQL = sqlite_epic_free.EpicFreeGamesSQL()
         items = epicFreeSQL.get_item_by_push_flag(0)
-        # 遍历频道，给频道进行推送 TODO 如果服务器多了推送速度是否有点慢，可以用asyncio创建任务但是目前不知道怎么设置速率限制
+        # 遍历频道，给频道进行推送
         for channel in sub_channels:
             channel_id: str = channel[4]
             try:
@@ -144,7 +144,8 @@ async def send_item_to_channel(bot: Bot, target_channel: PublicChannel, item_fre
                     f"sending card message without descriptions...", exc_info=False)
                 # 进行推送
                 await bot.client.send(target=target_channel, type=MessageTypes.CARD,
-                                      content=free_game_card_message(item_free_tuple_raw, desc=False))
+                                      content=free_game_card_message(item_free_tuple_raw,
+                                                                     desc=False, game_img=False))
                 # 推送完毕
                 logger.info(
                     f"Free item({db_item.game_id}:{db_item.title}) has been pushed to channel"
