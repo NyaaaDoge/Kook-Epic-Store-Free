@@ -61,7 +61,7 @@ def free_game_card_message(item_free_tuple_raw, desc=True, game_img=True):
 
     card.append(Module.Context(Element.Text('[Bot Market](https://www.botmarket.cn/bots?id=108) | '
                                             '[加入交流服务器获取更多资讯](https://kook.top/nGr9DH) | '
-                                            '[爱发电](https://afdian.net/a/NyaaaDoge)', type=Types.Text.KMD)))
+                                            '[爱发电](https://afdian.com/a/NyaaaDoge)', type=Types.Text.KMD)))
 
     card_message.append(card)
     return card_message
@@ -87,7 +87,7 @@ Bot需要拥有 `角色管理权限`，用于判断用户是否具有权限开�
 > 建议在服务器单独开设一个频道接收Epic免费游戏资讯，将该文字频道的频道的Epic Store Free角色的可见和发送消息权限设置为开启。
 **`别忘了打开Bot的权限！别忘了打开Bot的权限！别忘了打开Bot的权限！不然Bot无法发送消息！`**
 Bot获取到的Epic Games Store的免费游戏的区域均为国区（CN）。
-如果觉得Epic Store Free好用的话，欢迎来[Bot Market页面](https://www.botmarket.cn/)发表评价或[爱发电捐助我](https://afdian.net/a/NyaaaDoge)。
+如果觉得Epic Store Free好用的话，欢迎来[Bot Market页面](https://www.botmarket.cn/)发表评价或[爱发电捐助我](https://afdian.com/a/NyaaaDoge)。
 欢迎加入交流服务器**[Steam阀门社](https://kook.top/nGr9DH)**，服务器内有Steam限时免费游戏推送等游戏资讯。""", type=Types.Text.KMD)))
     card.append(Module.Divider())
     card.append(Module.Section('如有任何问题，欢迎加入交流服务器与开发者联系',
